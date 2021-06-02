@@ -4,8 +4,6 @@
 #include "object3d.hpp"
 #include <vecmath.h>
 #include <cmath>
-#include <iostream>
-using namespace std;
 
 class Triangle: public Object3D {
 

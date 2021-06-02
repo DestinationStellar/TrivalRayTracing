@@ -6,7 +6,6 @@
 
 #include "ray.hpp"
 #include "hit.hpp"
-#include <iostream>
 
 // TODO: Implement Shade function that computes Phong introduced in class.
 class Material {

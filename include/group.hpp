@@ -5,7 +5,6 @@
 #include "object3d.hpp"
 #include "ray.hpp"
 #include "hit.hpp"
-#include <iostream>
 #include <vector>
 
 

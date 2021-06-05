@@ -25,6 +25,18 @@ public:
 
     ~SceneParser();
 
+    int getSamplePerPixel() const {
+        return sample_per_pixel;
+    }
+
+    int getMaxDepth() const {
+        return max_depth;
+    }
+
+    int getInitWeight() const {
+        return init_weight;
+    }
+
     Camera *getCamera() const {
         return camera;
     }
@@ -40,6 +52,10 @@ public:
     Light *getLight(int i) const {
         assert(i >= 0 && i < num_lights);
         return lights[i];
+    }
+
+    Light *getAmbientLight() const {
+        return ambientLight;
     }
 
     int getNumMaterials() const {
@@ -58,13 +74,15 @@ public:
 private:
 
     void parseFile();
+    void parseGlobal();
     void parsePerspectiveCamera();
     void parseBackground();
     void parseLights();
     Light *parsePointLight();
     Light *parseDirectionalLight();
+    Light *parseAmbientLight();
     void parseMaterials();
-    Material *parseMaterial();
+    Material *parseMaterial(char token[MAX_PARSER_TOKEN_LENGTH]);
     Object3D *parseObject(char token[MAX_PARSER_TOKEN_LENGTH]);
     Group *parseGroup();
     Sphere *parseSphere();
@@ -81,10 +99,14 @@ private:
     int readInt();
 
     FILE *file;
+    int sample_per_pixel;
+    int max_depth;
+    float init_weight;
     Camera *camera;
     Vector3f background_color;
     int num_lights;
     Light **lights;
+    Light *ambientLight;
     int num_materials;
     Material **materials;
     Material *current_material;

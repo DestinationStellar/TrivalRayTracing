@@ -1,9 +1,10 @@
 #ifndef SPHERE_H
 #define SPHERE_H
 
-#include "object3d.hpp"
 #include <vecmath.h>
 #include <cmath>
+#include "object3d.hpp"
+#include "utils.hpp"
 
 class Sphere : public Object3D {
 public:
@@ -27,17 +28,16 @@ public:
             float t_p=Vector3f::dot(l,r.getDirection().normalized());
             if(t_p>=0){
                 float d=l.squaredLength()-t_p*t_p;
-                if(d<0){
-                    d=0;
-                } 
-                d=sqrt(d);
-                if(d<=radius){
-                    float t_tmp=sqrt(abs(radius*radius-d*d));
+                d = clampFloatNegative(d);
+                d = sqrt(d);
+                if(radius*radius-d*d>0){
+                    float t_tmp=sqrt(radius*radius-d*d);
                     float t=t_p-t_tmp;
                     if (t>=tmin && t<h.getT()){
                         Vector3f intersec_point=r.pointAtParameter(t);
                         Vector3f n=(intersec_point-center).normalized();
-                        h.set(t,material,n);
+                        if(radius<0)n=-n;
+                        h.set(t,material,n,r);
                         return true;
                     }
                 }

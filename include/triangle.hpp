@@ -17,7 +17,7 @@ public:
 		this->vertices[2]=c;
 	}
 
-	bool intersect( const Ray& ray,  Hit& hit , float tmin) override {
+	bool intersect(const Ray& ray,  Hit& hit , float tmin) override {
 		Vector3f e_1=vertices[0]-vertices[1];
 		Vector3f e_2=vertices[0]-vertices[2];
 		Vector3f s=vertices[0]-ray.getOrigin();
@@ -27,10 +27,10 @@ public:
 			if(result.y()>=0&&result.z()>=0&&result.y()+result.z()<=1){
 				this->normal=Vector3f::cross(e_1,e_2);
 				normal.normalize();
-				if(Vector3f::dot(normal,ray.getOrigin())<0){
-                	normal = -normal;
-            	}
-				hit.set(result.x(),material,normal);
+				// if(Vector3f::dot(normal,ray.getOrigin())<0){
+                // 	normal = -normal;
+            	// }
+				hit.set(result.x(),material,normal,ray);
 				return true;
 			}
 		}

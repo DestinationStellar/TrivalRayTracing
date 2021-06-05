@@ -25,9 +25,13 @@ SceneParser::SceneParser(const char *filename) {
     background_color = Vector3f(0.5, 0.5, 0.5);
     num_lights = 0;
     lights = nullptr;
+    ambientLight = nullptr;
     num_materials = 0;
     materials = nullptr;
     current_material = nullptr;
+    sample_per_pixel = 100;
+    max_depth = 10;
+    init_weight = 2;
 
     // parse the file
     assert(filename != nullptr);
@@ -79,7 +83,9 @@ void SceneParser::parseFile() {
     //
     char token[MAX_PARSER_TOKEN_LENGTH];
     while (getToken(token)) {
-        if (!strcmp(token, "PerspectiveCamera")) {
+        if (!strcmp(token, "Global")){
+            parseGlobal();
+        } else if (!strcmp(token, "PerspectiveCamera")) {
             parsePerspectiveCamera();
         } else if (!strcmp(token, "Background")) {
             parseBackground();
@@ -95,6 +101,25 @@ void SceneParser::parseFile() {
         }
     }
 }
+// ====================================================================
+// ====================================================================
+
+void SceneParser::parseGlobal() {
+    char token[MAX_PARSER_TOKEN_LENGTH];
+    getToken(token);
+    assert (!strcmp(token, "{"));
+    while(getToken(token)) {
+        if (!strcmp(token, "sample")){
+            sample_per_pixel = readInt();
+        } else if (!strcmp(token, "depth")){
+            max_depth = readInt();
+        } else if (!strcmp(token, "weight")){
+            init_weight = readFloat();
+        } else if (!strcmp(token, "}")){
+            break;
+        }
+    }
+}
 
 // ====================================================================
 // ====================================================================
@@ -105,11 +130,11 @@ void SceneParser::parsePerspectiveCamera() {
     getToken(token);
     assert (!strcmp(token, "{"));
     getToken(token);
-    assert (!strcmp(token, "center"));
-    Vector3f center = readVector3f();
+    assert (!strcmp(token, "lookFrom"));
+    Vector3f lookFrom = readVector3f();
     getToken(token);
-    assert (!strcmp(token, "direction"));
-    Vector3f direction = readVector3f();
+    assert (!strcmp(token, "lookAt"));
+    Vector3f lookAt = readVector3f();
     getToken(token);
     assert (!strcmp(token, "up"));
     Vector3f up = readVector3f();
@@ -123,12 +148,17 @@ void SceneParser::parsePerspectiveCamera() {
     getToken(token);
     assert (!strcmp(token, "height"));
     int height = readInt();
-    getToken(token);
-    assert (!strcmp(token, "sample"));
-    int sample = readInt();
-    getToken(token);
-    assert (!strcmp(token, "}"));
-    camera = new PerspectiveCamera(center, direction, up, width, height, angle_radians, sample);
+    float aperture = 0, focus = (lookAt-lookFrom).length();
+    while (getToken(token)){
+        if (!strcmp(token, "aperture")) {
+            aperture = readFloat();
+        } else if (!strcmp(token, "focus")) {
+            focus = readFloat();
+        } else if (!strcmp(token, "}")) {
+            break;
+        }
+    }
+    camera = new PerspectiveCamera(lookFrom, lookAt, up, width, height, angle_radians, aperture, focus);
 }
 
 void SceneParser::parseBackground() {
@@ -176,6 +206,9 @@ void SceneParser::parseLights() {
         count++;
     }
     getToken(token);
+    assert (!strcmp(token, "AmbientLight"));
+    ambientLight = parseAmbientLight();
+    getToken(token);
     assert (!strcmp(token, "}"));
 }
 
@@ -208,6 +241,18 @@ Light *SceneParser::parsePointLight() {
     assert (!strcmp(token, "}"));
     return new PointLight(position, color);
 }
+
+Light *SceneParser::parseAmbientLight() {
+    char token[MAX_PARSER_TOKEN_LENGTH];
+    getToken(token);
+    assert (!strcmp(token, "{"));
+    getToken(token);
+    assert (!strcmp(token, "color"));
+    Vector3f color = readVector3f();
+    getToken(token);
+    assert (!strcmp(token, "}"));
+    return new AmbientLight(color);
+}
 // ====================================================================
 // ====================================================================
 
@@ -224,9 +269,12 @@ void SceneParser::parseMaterials() {
     int count = 0;
     while (num_materials > count) {
         getToken(token);
-        if (!strcmp(token, "Material") ||
-            !strcmp(token, "PhongMaterial")) {
-            materials[count] = parseMaterial();
+        if (!strcmp(token, "Material")||
+            !strcmp(token, "Lambertian")||
+            !strcmp(token, "Metal")||
+            !strcmp(token, "Dielectric")||
+            !strcmp(token, "Light")) {
+            materials[count] = parseMaterial(token);
         } else {
             printf("Unknown token in parseMaterial: '%s'\n", token);
             exit(0);
@@ -238,22 +286,30 @@ void SceneParser::parseMaterials() {
 }
 
 
-Material *SceneParser::parseMaterial() {
+Material *SceneParser::parseMaterial(char type[MAX_PARSER_TOKEN_LENGTH]) {
     char token[MAX_PARSER_TOKEN_LENGTH];
     char filename[MAX_PARSER_TOKEN_LENGTH];
     filename[0] = 0;
-    Vector3f diffuseColor(1, 1, 1), specularColor(0, 0, 0);
-    float shininess = 0;
+    Vector3f ambientColor(0, 0, 0), diffuseColor(0, 0, 0), specularColor(0, 0, 0), albedo(0, 0, 0);
+    float shininess = 0, fuzz = 0, ir=0;
     getToken(token);
     assert (!strcmp(token, "{"));
     while (true) {
         getToken(token);
-        if (strcmp(token, "diffuseColor") == 0) {
+        if (strcmp(token, "ambientColor") == 0) {
+            ambientColor = readVector3f();
+        } else if (strcmp(token, "diffuseColor") == 0) {
             diffuseColor = readVector3f();
         } else if (strcmp(token, "specularColor") == 0) {
             specularColor = readVector3f();
         } else if (strcmp(token, "shininess") == 0) {
             shininess = readFloat();
+        } else if (strcmp(token, "albedo") == 0){
+            albedo = readVector3f();
+        } else if (strcmp(token, "fuzz") == 0){
+            fuzz = readFloat();
+        } else if (strcmp(token, "ir") == 0){
+            ir = readFloat(); 
         } else if (strcmp(token, "texture") == 0) {
             // Optional: read in texture and draw it.
             getToken(filename);
@@ -262,7 +318,17 @@ Material *SceneParser::parseMaterial() {
             break;
         }
     }
-    auto *answer = new Material(diffuseColor, specularColor, shininess);
+    Material *answer = nullptr;
+    if(!strcmp(type, "Material")||!strcmp(type, "Lambertian")){
+        answer = new Lambertian(ambientColor, diffuseColor, specularColor, shininess, albedo);
+    } else if (!strcmp(type, "Metal")){
+        answer = new Metal(ambientColor, diffuseColor, specularColor, shininess, albedo, fuzz);
+    } else if (!strcmp(type, "Dielectric")){
+        answer = new Dielectric(ambientColor, diffuseColor, specularColor, shininess, ir);
+    } else if (!strcmp(type, "Light")){
+        ;
+    }
+    
     return answer;
 }
 

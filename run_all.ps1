@@ -25,7 +25,8 @@ $OUTPUT_EXISTS = (Test-Path ".\output")
 if (!$OUTPUT_EXISTS){
     mkdir -Force output
 }
-bin/FINAL testcases/scene01_basic.txt output/scene01.bmp
+.\bin\FINAL.exe .\testcases\test.txt .\output\test.bmp
+# bin/FINAL testcases/scene01_basic.txt output/scene01.bmp
 # bin/FINAL testcases/scene02_cube.txt output/scene02.bmp
 # bin/FINAL testcases/scene03_sphere.txt output/scene03.bmp
 # bin/FINAL testcases/scene04_axes.txt output/scene04.bmp

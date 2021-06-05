@@ -67,4 +67,26 @@ private:
 
 };
 
+class AmbientLight : public Light {
+public:
+    AmbientLight() = delete;
+
+    AmbientLight(const Vector3f &c) {
+        color = c;
+    }
+
+    ~AmbientLight() override = default;
+
+    ///@param p unsed in this function
+    ///@param dir unsed in this function
+    void getIllumination(const Vector3f &p, Vector3f &dir, Vector3f &col) const override {
+        col = color;
+    }
+
+private:
+
+    Vector3f color;
+
+};
+
 #endif // LIGHT_H

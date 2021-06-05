@@ -11,20 +11,30 @@ public:
 
     // constructors
     Hit() {
-        material = nullptr;
         t = 1e38;
+        time = 0;
+        frontFace = true;
+        material = nullptr;
+        normal = Vector3f::ZERO;
+        intersectP = Vector3f::ZERO;
     }
 
-    Hit(float _t, Material *m, const Vector3f &n) {
+    Hit(float _t, float _time, bool _f, Material *m, const Vector3f &n, const Vector3f &p) {
         t = _t;
+        time = _time;
+        frontFace = _f;
         material = m;
         normal = n;
+        intersectP = p;
     }
 
     Hit(const Hit &h) {
         t = h.t;
+        time = h.time;
+        frontFace = h.frontFace;
         material = h.material;
         normal = h.normal;
+        intersectP = h.intersectP;
     }
 
     // destructor
@@ -32,6 +42,10 @@ public:
 
     float getT() const {
         return t;
+    }
+
+    bool getFrontFace() const {
+        return frontFace;
     }
 
     Material *getMaterial() const {
@@ -42,17 +56,34 @@ public:
         return normal;
     }
 
-    void set(float _t, Material *m, const Vector3f &n) {
+    const Vector3f &getIntersectP() const {
+        return intersectP;
+    }
+
+    void set(float _t, Material *m, const Vector3f &outside_n, const Ray &r) {
         t = _t;
         material = m;
-        normal = n;
+        frontFace = Vector3f::dot(r.getDirection(), outside_n) < 0;
+        normal = frontFace ? outside_n :-outside_n;
+        intersectP = r.pointAtParameter(t);
+    }
+
+    void init(){
+        t = 1e38;
+        time = 0;
+        frontFace = true;
+        material = nullptr;
+        normal = Vector3f::ZERO;
+        intersectP = Vector3f::ZERO;
     }
 
 private:
     float t;
+    float time;
+    bool frontFace;
     Material *material;
     Vector3f normal;
-
+    Vector3f intersectP;
 };
 
 inline std::ostream &operator<<(std::ostream &os, const Hit &h) {

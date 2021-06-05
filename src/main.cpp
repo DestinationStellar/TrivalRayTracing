@@ -10,6 +10,7 @@
 #include "camera.hpp"
 #include "group.hpp"
 #include "light.hpp"
+#include "ray_tracer.hpp"
 
 #include <string>
 #include <ctime>
@@ -40,36 +41,29 @@ int main(int argc, char *argv[]) {
     SceneParser sceneParser(argv[1]);
     Image renderedImg(sceneParser.getCamera()->getWidth(),sceneParser.getCamera()->getHeight());
     Group* baseGroup = sceneParser.getGroup();
+    RayTracer rayTracer(sceneParser);
+    int sample_per_pixel = sceneParser.getSamplePerPixel();
+    int max_depth = sceneParser.getMaxDepth();
+    float init_weight = sceneParser.getInitWeight();
     // 循环屏幕空间的像素
+    int total = sceneParser.getCamera()->getWidth()*sceneParser.getCamera()->getHeight();
     for (int x = 0; x < sceneParser.getCamera()->getWidth(); ++x) {
         for (int y = 0; y < sceneParser.getCamera()->getHeight(); ++y) {
+            int current = x*sceneParser.getCamera()->getHeight()+y;
+            printf("\rrendering image pass %.3lf%%", current*100.f/total);
             // 计算当前像素(x,y)处相机出射光线camRay
-            vector<Ray> camRay = sceneParser.getCamera()->generateRay(Vector2f(x, y));
-            Hit hit;
             Vector3f finalColor = Vector3f::ZERO;
-            // 判断camRay是否和场景有交点， 并返回最近交点的数据， 存储在hit中
-            for(auto iter=camRay.begin();iter!=camRay.end();iter++){
-                hit.set(1e38,nullptr,Vector3f::ZERO);
-                bool isIntersect = baseGroup->intersect((*iter), hit, 0);
-                if (isIntersect) {
-                    // 找到交点之后， 累加来自所有光源的光强影响
-                    for (int li = 0; li < sceneParser.getNumLights(); ++li) {
-                        Light* light = sceneParser.getLight(li);
-                        Vector3f L, lightColor;
-                        // 获得光照强度
-                        light->getIllumination((*iter).pointAtParameter(hit.getT()), L, lightColor);
-                        // 计算局部光强
-                        finalColor += hit.getMaterial()->Shade((*iter), hit, L, lightColor);
-                    }
-                } else {
-                    // 不存在交点， 返回背景色
-                    finalColor += sceneParser.getBackgroundColor();
-                }
+            for (int i=0; i<sample_per_pixel; i++) {
+                float bias_x = (rand()%sample_per_pixel)/(float)sample_per_pixel;
+                float bias_y = (rand()%sample_per_pixel)/(float)sample_per_pixel;
+                Ray camRay = sceneParser.getCamera()->generateRay(Vector2f(x+bias_x, y+bias_y));
+                finalColor += rayTracer.traceRay(camRay, max_depth, init_weight);
             }
-            finalColor = finalColor/(float)camRay.size();
+            finalColor = finalColor/(float)sample_per_pixel;
             renderedImg.SetPixel(x, y, finalColor);
         }
     }
+    printf("\rrendering image pass 100.000%%\n");
     renderedImg.SaveImage(argv[2]);
     cout << "Successfully rendered image!" << endl;
     // delete baseGroup;

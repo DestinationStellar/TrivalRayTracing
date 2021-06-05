@@ -28,8 +28,10 @@ SET(FINAL_INCLUDES
         include/sphere.hpp
         include/transform.hpp
         include/triangle.hpp
-        include/revsurface.hpp
         include/curve.hpp
+        include/revsurface.hpp
+        include/ray_tracer.hpp
+        include/utils.hpp
         )
 
 SET(CMAKE_CXX_STANDARD 11)

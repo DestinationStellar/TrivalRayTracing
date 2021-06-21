@@ -6,6 +6,7 @@
 #include "triangle.hpp"
 #include "Vector2f.h"
 #include "Vector3f.h"
+#include "utils.hpp"
 
 
 class Mesh : public Object3D {
@@ -18,6 +19,7 @@ public:
             x[0] = 0; x[1] = 0; x[2] = 0;
         }
         int &operator[](const int i) { return x[i]; }
+        int operator[](const int i) const { return x[i]; }
         // By Computer Graphics convention, counterclockwise winding is front face
         int x[3]{};
     };
@@ -25,7 +27,8 @@ public:
     std::vector<Vector3f> v;
     std::vector<TriangleIndex> t;
     std::vector<Vector3f> n;
-    bool intersect(const Ray &r, Hit &h, float tmin) override;
+    bool intersect(const Ray &r, Hit &h, float tmin = 0.0, float tmax = infinity) const override;
+    bool bounding_box(double time0, double time1, AABB& output_box) const override;
 
 private:
 

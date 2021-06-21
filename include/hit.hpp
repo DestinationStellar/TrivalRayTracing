@@ -8,11 +8,13 @@ class Material;
 
 class Hit {
 public:
-
+    float u,v;
     // constructors
     Hit() {
         t = 1e38;
         time = 0;
+        u = 0;
+        v = 0;
         frontFace = true;
         material = nullptr;
         normal = Vector3f::ZERO;
@@ -71,15 +73,17 @@ public:
     void init(){
         t = 1e38;
         time = 0;
+        u = 0;
+        v = 0;
         frontFace = true;
         material = nullptr;
         normal = Vector3f::ZERO;
         intersectP = Vector3f::ZERO;
     }
-
-private:
+    
+public:
     float t;
-    float time;
+    float time; 
     bool frontFace;
     Material *material;
     Vector3f normal;

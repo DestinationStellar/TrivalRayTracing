@@ -45,14 +45,17 @@ class PerspectiveCamera : public Camera {
 
 public:
     PerspectiveCamera(const Vector3f &lookFrom, const Vector3f &lookAt,
-            const Vector3f &vup, int imgW, int imgH, float angle, float aperture, float focus_dis) : Camera(lookFrom, lookAt, vup, imgW, imgH) {
+            const Vector3f &vup, int imgW, int imgH, float angle, float aperture, float focus_dis, float tm0 = 0.0, float tm1 = 0.0
+        ) : Camera(lookFrom, lookAt, vup, imgW, imgH) {
         // angle is in radian.
         auto half_height = tan(angle/2);
-        auto half_width = (imgW/imgH) * half_height;
+        auto half_width = ((float)imgW/imgH) * half_height;
         focus_horizontal = focus_dis * half_width * horizontal * 2;
         focus_vertical = focus_dis * half_height * up * 2;
         focus_origin = origin + focus_dis*direction - focus_horizontal/2 -focus_vertical/2; 
-        len_radius = aperture/2; 
+        len_radius = aperture/2;
+        time0 = tm0;
+        time1 = tm1;
     }
 
     Ray generateRay(const Vector2f &point) override {
@@ -60,10 +63,12 @@ public:
         Vector3f offset = horizontal * rd.x() + up * rd.y();
         Vector3f dir_ray = focus_origin + (point.x()/(width-1)) * focus_horizontal + (point.y()/(height-1)) * focus_vertical - origin - offset;
         dir_ray.normalize();
-        return Ray(origin+offset,dir_ray);
+        return Ray(origin+offset,dir_ray,random_double(time0,time1));
     }
 protected:
     float len_radius;
+    float time0;
+    float time1;
     Vector3f focus_origin; // 焦平面坐标系原点 位于焦平面左下角
     Vector3f focus_horizontal; // 焦平面水平轴
     Vector3f focus_vertical; // 焦平面垂直轴

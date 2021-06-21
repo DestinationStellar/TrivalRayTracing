@@ -7,13 +7,16 @@
 class Camera;
 class Light;
 class Material;
+class Texture;
 class Object3D;
 class Group;
 class Sphere;
 class Plane;
+class Rectangle;
 class Triangle;
 class Transform;
 class Mesh;
+class MovingSphere;
 
 #define MAX_PARSER_TOKEN_LENGTH 1024
 
@@ -67,6 +70,15 @@ public:
         return materials[i];
     }
 
+    int getNumTextures() const {
+        return num_textures;
+    }
+
+    Texture *getTexture(int i) const {
+        assert(i >= 0 && i < num_textures);
+        return textures[i];
+    }
+
     Group *getGroup() const {
         return group;
     }
@@ -83,13 +95,18 @@ private:
     Light *parseAmbientLight();
     void parseMaterials();
     Material *parseMaterial(char token[MAX_PARSER_TOKEN_LENGTH]);
+    void parseTextures();
+    Texture *parseTexture(char token[MAX_PARSER_TOKEN_LENGTH]);
     Object3D *parseObject(char token[MAX_PARSER_TOKEN_LENGTH]);
     Group *parseGroup();
     Sphere *parseSphere();
     Plane *parsePlane();
+    Rectangle *parseRectangle();
     Triangle *parseTriangle();
     Mesh *parseTriangleMesh();
     Transform *parseTransform();
+    MovingSphere *parseMovingSphere();
+
 
     int getToken(char token[MAX_PARSER_TOKEN_LENGTH]);
 
@@ -110,6 +127,9 @@ private:
     int num_materials;
     Material **materials;
     Material *current_material;
+    int num_textures;
+    Texture **textures;
+    Texture *current_texture;
     Group *group;
 };
 

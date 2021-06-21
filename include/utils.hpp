@@ -2,12 +2,16 @@
 #define UTILS_H
 
 #include <vecmath.h>
+#include <limits>
 
-#define pi 3.141592653589793
+const double infinity = std::numeric_limits<double>::infinity();
 
-inline float clampFloatNegative(float in){
-    if(in > 0)return in;
-    return 0.0f;
+#define DegreesToRadians(x) ((M_PI * x) / 180.0f)
+
+inline float clamp(float in, float _min = 0.0, float _max = infinity) {
+    if (in < _min) return _min;
+    else if (in > _max) return _max;
+    return in;
 }
 
 inline double random_double() {
@@ -42,10 +46,14 @@ inline Vector3f random_in_unit_sphere() {
 }
 
 inline Vector3f random_unit_vector() {
-    auto a = random_double(0, 2*pi);
-    auto z = random_double(-1, 1);
-    auto r = sqrt(1 - z*z);
-    return Vector3f(r*cos(a), r*sin(a), z);
+    // two ways to produce
+
+    // auto a = random_double(0, 2*pi);
+    // auto z = random_double(-1, 1);
+    // auto r = sqrt(1 - z*z);
+    // return Vector3f(r*cos(a), r*sin(a), z);
+
+    return random_in_unit_sphere().normalized();
 }
 
 inline Vector3f random_in_unit_disk() {

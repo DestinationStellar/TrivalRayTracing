@@ -6,18 +6,22 @@
 #include <utility>
 #include <sstream>
 
-bool Mesh::intersect(const Ray &r, Hit &h, float tmin) {
+bool Mesh::intersect(const Ray &r, Hit &h, float tmin, float tmax) const {
 
     // Optional: Change this brute force method into a faster one.
     bool result = false;
     for (int triId = 0; triId < (int) t.size(); ++triId) {
-        TriangleIndex& triIndex = t[triId];
+        const TriangleIndex& triIndex = t[triId];
         Triangle triangle(v[triIndex[0]],
                           v[triIndex[1]], v[triIndex[2]], material);
         triangle.normal = n[triId];
-        result |= triangle.intersect(r, h, tmin);
+        result |= triangle.intersect(r, h, tmin, tmax);
     }
     return result;
+}
+
+bool Mesh::bounding_box(double time0, double time1, AABB& output_box) const {
+	return false;
 }
 
 Mesh::Mesh(const char *filename, Material *material) : Object3D(material) {

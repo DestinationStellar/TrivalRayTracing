@@ -2,6 +2,7 @@
 #define PLANE_H
 
 #include "object3d.hpp"
+#include "utils.hpp"
 #include <vecmath.h>
 #include <cmath>
 
@@ -21,15 +22,19 @@ public:
 
     ~Plane() override = default;
 
-    bool intersect(const Ray &r, Hit &h, float tmin) override {
+    bool intersect(const Ray &r, Hit &h, float tmin = 0.0, float tmax = infinity) const override {
         float t=(d-Vector3f::dot(normal,r.getOrigin()))/(Vector3f::dot(normal,r.getDirection()));
-        if(t>=tmin&&t<h.getT()){
+        if(t>=tmin&&t<tmax){
             // if(Vector3f::dot(normal,r.getOrigin())<0){
             //     normal = -normal;
             // }
             h.set(t,material,normal,r);
             return true;
         }
+        return false;
+    }
+
+    bool bounding_box(double time0, double time1, AABB& output_box) const override {
         return false;
     }
 

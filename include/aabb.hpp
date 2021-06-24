@@ -17,7 +17,7 @@ class AABB {
         Vector3f min() const {return minimum; }
         Vector3f max() const {return maximum; }
 
-        bool intersect(const Ray& r, float &t_min, float t_max) const {
+        bool intersect(const Ray& r, float t_min, float t_max) const {
             float tmin = t_min, tmax = t_max;
             for (int a = 0; a < 3; a++) {
                 auto t0 = fmin((minimum[a] - r.getOrigin()[a]) / r.getDirection()[a],
@@ -29,7 +29,6 @@ class AABB {
                 if (tmax <= tmin)
                     return false;
             }
-            t_min = tmin;
             return true;
         }
 

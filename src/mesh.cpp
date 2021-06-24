@@ -131,8 +131,7 @@ Mesh::Mesh(const char *filename, shared_ptr<Material> material) : Object3D(mater
 
             }
 
-            shared_ptr<Object3D> tri = make_shared<Triangle>(tri_v[0], tri_v[1], tri_v[2], material);
-            triangle.push_back(tri);
+            triangle.push_back(make_shared<Triangle>(tri_v[0], tri_v[1], tri_v[2], material));
 
             index_offset += fv;
 

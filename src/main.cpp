@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
     // pixel in your output image.
     for (int x = 0; x < image_width; ++x) {
          printf("\rrendering image pass %.3lf%%", x*100.f/image_width);
-        // #pragma omp parallel for schedule(dynamic, 60), num_threads(12)
+        #pragma omp parallel for schedule(dynamic, 60), num_threads(12)
         for (int y = 0; y < image_height; ++y) {
             Vector3f finalColor = Vector3f::ZERO;
             float actual_samples = sample_per_pixel; 

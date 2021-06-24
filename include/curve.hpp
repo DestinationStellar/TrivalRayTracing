@@ -26,7 +26,6 @@ public:
         y_max = controls[0][1];
         for (int i=1; i<controls.size(); i++) {
             radius = fmax(radius, fabs(controls[i][0]));
-            radius = fmax(radius, fabs(controls[i][2]));
             y_min = fmin(y_min, controls[i][1]);
             y_max = fmax(y_max, controls[i][1]);
 		}
@@ -53,6 +52,10 @@ public:
 
     std::vector<Vector3f> &getControls() {
         return controls;
+    }
+
+    int getControlsSize() {
+        return controls.size();
     }
  
     virtual void discretize(int resolution, std::vector<CurvePoint>& data) = 0;
@@ -92,8 +95,8 @@ public:
                 baseFunction[i][j]=0.0;
             }
         }
-        range[0] = (float)k/(n+k+1);
-        range[1] = (float)(n+1)/(n+k+1);
+        range[0] = 0;
+        range[1] = 1;
     }
 
     void discretize(int resolution, std::vector<CurvePoint>& data) override {
@@ -170,8 +173,8 @@ public:
                 baseFunction[i][j]=0.0;
             }
         }
-        range[0] = (float)k/(n+k+1);
-        range[1] = (float)(n+1)/(n+k+1);
+        range[0] = knot[k];
+        range[1] = knot[n+1];
     }
 
     void discretize(int resolution, std::vector<CurvePoint>& data) override {

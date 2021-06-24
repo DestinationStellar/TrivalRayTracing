@@ -7,19 +7,10 @@
 #include <tuple>
 #include <iostream>
 
-const int resolution = 10;
 const int NEWTON_STEPS = 100;
 const float NEWTON_EPS = 1e-4;
 
 class RevSurface : public Object3D {
-
-    shared_ptr<Curve> pCurve;
-    AABB bound_box;
-    // to determine the axis
-    Vector3f point;
-    // for cylinder
-    double radius;
-    double maxy, miny;
 
 public:
     RevSurface(shared_ptr<Curve> pCurve, shared_ptr<Material> material) : pCurve(pCurve), Object3D(material) {
@@ -30,19 +21,18 @@ public:
                 exit(0);
             }
         }
-        bound_box = AABB(Vector3f(-pCurve->radius, pCurve->y_min - 3, -pCurve->radius),
-                 Vector3f(pCurve->radius, pCurve->y_max + 3, pCurve->radius));
-        point = Vector3f::ZERO;
+        controls_num = pCurve->getControlsSize();
         miny = pCurve->y_min;
         maxy = pCurve->y_max;
         radius = pCurve->radius;
+        pCurve->discretize(30, curvePoints);
     }
 
     ~RevSurface() override {}
 
     bool intersect(const Ray &r, Hit &h, float tmin = 0.0, float tmax = infinity) const override {
 
-        static const double eps = 0.01;
+        
         Vector3f ro = r.getOrigin();
         Vector3f rd = r.getDirection();
         double dt, dl, d0;
@@ -50,8 +40,8 @@ public:
         // intersect with the cylinder
         double l, a, b, c;
         a = (rd.x() * rd.x() + rd.z() * rd.z());
-        b = (2 * rd.x() * (ro.x() - point.x()) + 2 * rd.z() * (ro.z() - point.z()));
-        c = point.x() * point.x() + point.z() * point.z() + ro.x() * ro.x() + ro.z() * ro.z() - 2 * ro.x() * point.x() - 2 * ro.z() * point.z() - radius * radius;
+        b = (2 * rd.x() * ro.x() + 2 * rd.z() * ro.z());
+        c = ro.x() * ro.x() + ro.z() * ro.z() - radius * radius;
         double det = b * b - 4 * a * c;
 
         if (det < 0) return false;
@@ -59,36 +49,71 @@ public:
         if ((-b - det) / (2 * a) > tmin) l = (-b - det) / (2 * a);
         else if ((-b + det) / (2 * a) > tmin) l = (-b + det) / (2 * a);
         else return false;
-        Vector3f near = ro + l * rd;
+        Vector3f np = ro + l * rd;
 
-        double t = (near.y() - miny) / (maxy - miny);
+        double t = (np.y() - miny) / (maxy - miny);
         if (t < 0 || t > 1) return false;
-        Vector3f np = near - point;
-        float theta = std::acos(np.x() / radius);
+        double theta0 = std::acos(np.x() / radius);
 
+        if (Levenberg_Marquardt(r, h, tmin, tmax, l, t, theta0)) return true;
 
-        float s = t, tr = l;
-        Vector3f p = r.pointAtParameter(tr);
-        double eta = 1;
+        // float interval = 0.01;
+        // for (int j = 0; j < 10; j ++){
+        //     double s1 = t + interval;
+        //     double s2 = t - interval;
+        //     if (s1 <= 1)
+        //         if (Levenberg_Marquardt(r, h, tmin, tmax, l, s1, theta0)) return true;
+        //     if (s2 >= 0)
+        //         if (Levenberg_Marquardt(r, h, tmin, tmax, l, s2, theta0)) return true;
+        //     interval *= 1.45;
+        // }
+        
+        float interval = 100;
+        for (int j = 0; j <= interval; j ++){
+            double s = pCurve->range[0] + (pCurve->range[1] - pCurve->range[0]) * (float)j/interval;
+            if (Levenberg_Marquardt(r, h, tmin, tmax, l, s, theta0)) return true;
+
+        }
+
+        // Vector3f normal, point;
+        // float tr = l, mu=t, theta = theta0;
+        // if (!newton(r, tr, theta, mu, normal, point)) {
+        //     // cout << "Not Intersect! t:" << t << " theta: " << theta / (2 *
+        //     // M_PI)
+        //     //      << " mu: " << mu << endl;
+        //     return false;
+        // }
+        // if (!std::isnormal(mu) || !std::isnormal(theta) || !std::isnormal(t)) return false;
+        // if (t < 0 || mu < pCurve->range[0] || mu > pCurve->range[1] ||
+        //     t > h.getT())
+        //     return false;
+        // h.set(t, material, normal.normalized(), r);
+
+        return false;
+    }
+
+    bool newton_iteration(const Ray &r, Hit &h, float tmin, float tmax, double tr, double s, double theta) const {
+        double eps = 1, eta = 1;
+        Vector3f F0 = Vector3f(0, 0, 0);
         for (int i = 0; i < NEWTON_STEPS; ++i) {
-            
-            if (theta < 0.0 || theta >= 2 * M_PI) theta = std::acos(np.x() / radius);
-            if (s >= 1) s = 1 - FLT_EPSILON;
-            if (s <= 0) s = 0 + FLT_EPSILON;
-            // if (tr >= tmin && tr < tmax) tr = l;
-            p = r.pointAtParameter(tr);
+            if (s >= 1) s = 1.0 - FLT_EPSILON;
+            if (s <= 0) s = FLT_EPSILON;
+            Vector3f p = r.pointAtParameter(tr);
             CurvePoint fs = pCurve->caculate(s);
             Vector3f F(p.x() - fs.V.x() * cos(theta),
-                       p.y() - fs.V.y(),
-                       p.z() - fs.V.x() * sin(theta));
+                    p.y() - fs.V.y(),
+                    p.z() - fs.V.x() * sin(theta));
             if (F.length() < eps) {
-                if (tr >= tmin && tr < tmax) {
-                    Vector3f n(-fs.T.y() * cos(theta), fs.T.x(), -fs.T.y() * sin(theta));
-                    n.normalize();
-                    h.set(tr, material, n, r);
-                    return true;
+                if(eps < 0.01){
+                    if (tr >= tmin && tr < tmax) {
+                        Vector3f n(-fs.T.y() * cos(theta), fs.T.x(), -fs.T.y() * sin(theta));
+                        n.normalize();
+                        h.set(tr, material, n, r);
+                        return true;
+                    }
+                    return false;
                 }
-                return false;
+                eps *= 0.8, eta *= 0.8;
             }
             
             Matrix3f JF(r.getDirection().x(), -cos(theta) * fs.T.x(), sin(theta) * fs.V.x(),
@@ -96,50 +121,100 @@ public:
                         r.getDirection().z(), -sin(theta) * fs.T.x(), -cos(theta) * fs.V.x());
             Vector3f delta = JF.inverse() * F;
             tr -= eta * delta.x(); s -= eta * delta.y(); theta -= eta * delta.z();
-            eta *= 0.99;
+        
             if (std::isnan(tr) || std::isnan(s) || std::isnan(theta))
                 return false;
         }
         return false;
     }
 
-    bool newtonIntersect(const Ray &r, Hit &h, float tmin, float tmax) const {
-        float theta, mu, t=tmin;
-        getUV(r, t, theta, mu);
-        Vector3f normal, hit_point;
-        // cout << "begin!" << endl;
-        if (!newton(r, t, theta, mu, normal, hit_point)) {
-            // cout << "Not Intersect! t:" << t << " theta: " << theta / (2 *
-            // M_PI)
-            //      << " mu: " << mu << endl;
-            return false;
+    bool Levenberg_Marquardt(const Ray &r, Hit &h, float tmin, float tmax, double tr, double s, double theta) const {
+        float epsilon1 = 1e-10, epsilon2 = 1e-10;
+        int imax = 100; float nu=2.0;
+        Vector3f X(tr, s, theta);
+        CurvePoint fs = pCurve->caculate(s);
+        Vector3f p = r.pointAtParameter(tr);
+        Matrix3f JF(r.getDirection().x(), -cos(theta) * fs.T.x(), sin(theta) * fs.V.x(),
+                    r.getDirection().y(), -fs.T.y(),              0,
+                    r.getDirection().z(), -sin(theta) * fs.T.x(), -cos(theta) * fs.V.x());
+        Vector3f F(p.x() - fs.V.x() * cos(theta),
+                    p.y() - fs.V.y(),
+                    p.z() - fs.V.x() * sin(theta));
+        Matrix3f H = JF.transposed()*JF;
+        Vector3f g = JF.transposed()*F;
+        bool found = g.length() <= epsilon1 || F.length() < 0.01;
+        float mu = - infinity;
+        for (int i = 0; i<3; i++) {
+            mu = fmax(mu, H(i,i));
         }
-        if (!std::isnormal(mu) || !std::isnormal(theta) || !std::isnormal(t)) return false;
-        if (t < 0 || mu < pCurve->range[0] || mu > pCurve->range[1] || t > tmax) {
-            return false;
-        }  
-        h.set(t, material, normal.normalized(), r);
-        // std::cout << "Intersect! t:" << t << " theta: " << theta / (2 * M_PI)
-        //      << " mu: " << mu << std::endl;
-        return true;
+        mu *= 0.000001;
+        for (int i = 0; i<=imax; i++) {
+            if (found) {
+                if (X.x() >= tmin && X.x() < tmax && X.y() <= pCurve->range[1] && X.y() >= pCurve->range[0] && F.length() < 0.01) {
+                    Vector3f n(-fs.T.y() * cos(X.z()), fs.T.x(), -fs.T.y() * sin(X.z()));
+                    n.normalize();
+                    h.set(X.x(), material, n, r);
+                    return true;
+                } 
+                return false;
+            }
+            H(0, 0) += mu;H(1, 1) += mu;H(2, 2) += mu;
+            Vector3f delta =  H.inverse() * (- g);
+            
+            if (delta.length() < epsilon2*(X.length() * epsilon2)) { 
+                found = true;
+            } else {
+                Vector3f X_new = X + delta;
+                CurvePoint fs_new = pCurve->caculate(X_new.y());
+                Vector3f p_new = r.pointAtParameter(X_new.x());
+                Vector3f F_new(p_new.x() - fs_new.V.x() * cos(X_new.z()),
+                            p_new.y() - fs_new.V.y(),
+                            p_new.z() - fs_new.V.x() * sin(X_new.z()));
+                float rho = (F.squaredLength()-F_new.squaredLength())/(Vector3f::dot(delta, mu*delta - g));
+                if (rho > 0) {
+                    X = X_new;
+                    fs = fs_new;
+                    p = p_new;
+                    F = F_new;
+                    JF = Matrix3f(r.getDirection().x(), -cos(X.z()) * fs.T.x(), sin(X.z()) * fs.V.x(),
+                                r.getDirection().y(), -fs.T.y(),              0,
+                                r.getDirection().z(), -sin(X.z()) * fs.T.x(), -cos(X.z()) * fs.V.x());
+                    H = JF.transposed()*JF;
+                    g = JF.transposed()*F;
+                    found = g.length() <= epsilon1 || F.length() < 0.01;
+                    mu = mu * fmax(1.0/3.0, 1-pow(2*rho-1, 3));
+                    nu = 2.0;
+                } else {
+                    mu = mu * nu;
+                    nu = 2 * nu;
+                }
+            }
+            if (std::isnan(X.x()) || std::isnan(X.y()) || std::isnan(X.z()))
+                return false;
+            if (X.y() >= 1) X.y() = 1.0 - FLT_EPSILON;
+            if (X.y() <= 0) X.y() = FLT_EPSILON;
+            if (X.x() < tmin) X.x() = tmin + FLT_EPSILON;
+            if (X.x() > tmax) X.x() = tmax - FLT_EPSILON;
+        }
+        return false;
     }
 
     bool newton(const Ray &r, float &t, float &theta, float &mu,
-                Vector3f &normal, Vector3f &hit_point) const {
+                Vector3f &normal, Vector3f &point) const {
         Vector3f dmu, dtheta;
-        float range0 = pCurve->range[0],range1 = pCurve->range[1];
         for (int i = 0; i < NEWTON_STEPS; ++i) {
             if (theta < 0.0) theta += 2 * M_PI;
             if (theta >= 2 * M_PI) theta = fmod(theta, 2 * M_PI);
-            if (mu >= pCurve->range[1]) mu = pCurve->range[1] - FLT_EPSILON;
-            if (mu <= pCurve->range[0]) mu = pCurve->range[0] + FLT_EPSILON;
-            hit_point = getPoint(theta, mu, dtheta, dmu);
-            Vector3f f = r.getOrigin() + r.getDirection() * t - hit_point;
+            if (mu >= 1) mu = 1.0 - FLT_EPSILON;
+            if (mu <= 0) mu = FLT_EPSILON;
+            point = getPoint(theta, mu, dtheta, dmu);
+            Vector3f f = r.getOrigin() + r.getDirection() * t - point;
             float dist2 = f.squaredLength();
+            // cout << "Iter " << i + 1 << " t: " << t
+            //      << " theta: " << theta / (2 * M_PI) << " mu: " << mu
+            //      << " dist2: " << dist2 << endl;
             normal = Vector3f::cross(dmu, dtheta);
-            if (dist2 < NEWTON_EPS) {
-                return true;
-            }
+            if (dist2 < NEWTON_EPS) return true;
             float D = Vector3f::dot(r.getDirection(), normal);
             t -= Vector3f::dot(dmu, Vector3f::cross(dtheta, f)) / D;
             mu -= Vector3f::dot(r.getDirection(), Vector3f::cross(dtheta, f)) / D;
@@ -161,29 +236,18 @@ public:
         return pt;
     }
 
-    void getUV(const Ray &r, const float &t, float &theta, float &mu) const {
-        Vector3f pt(r.getOrigin() + r.getDirection() * t);
-        theta = atan2(-pt.z(), pt.x()) + M_PI;
-        mu = (pCurve->y_max - pt.y()) / (pCurve->y_max - pCurve->y_min);
-    }
-
     bool bounding_box(double time0, double time1, AABB& output_box) const {
-        output_box = bound_box;
+        output_box = AABB(Vector3f(-pCurve->radius, pCurve->y_min - 3, -pCurve->radius),
+                 Vector3f(pCurve->radius, pCurve->y_max + 3, pCurve->radius));
         return true;
     }
 
 protected:
-
-    inline float function(const Vector3f &dir, const Vector3f &ori, float x_t, float y_t) const {
-        return (y_t-ori[1])*(y_t-ori[1])*(dir[0]*dir[0]+dir[2]*dir[2]) + 
-                2*(y_t-ori[1])*(ori[0]*dir[0]*dir[1]+ori[2]*dir[2]*dir[1]) + 
-                (ori[0]*ori[0] + ori[2]*ori[2]) * dir[1] * dir[1] - dir[1]*dir[1]*x_t*x_t;
-    }
-
-    inline float derive(const Vector3f &dir, const Vector3f &ori, float x_t, float y_t, float x_td, float y_td) const {
-        return 2*(dir[0]*dir[0]+dir[2]*dir[2])*(y_t-ori[1])*y_td + 
-                2*(ori[0]*dir[0]*dir[1]+ori[2]*dir[2]*dir[1])*y_td - 2*dir[1]*dir[1]*x_t*x_td;
-    }
+    std::vector<CurvePoint> curvePoints;
+    shared_ptr<Curve> pCurve;
+    double radius;
+    double maxy, miny;
+    int controls_num;
 
 };
 

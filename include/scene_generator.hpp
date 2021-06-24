@@ -343,7 +343,7 @@ protected:
         Vector3f lookfrom(278, 278, -800);
         Vector3f lookat(278, 278, 0);
         Vector3f vup(0,1,0);
-        float angle = 10.0;
+        float angle = 30.0;
         float aperture = 0.0;
         float focus_dis = 10.0;
 
@@ -368,38 +368,44 @@ protected:
         shared_ptr<Object3D> r5 = make_shared<Rectangle>(Vector3f(278, 278, 555), Vector3f(-1,0,0),Vector3f(0,1,0), 555, 555, white);
 
         std::vector<Vector3f> points;
-        points.reserve(26);
+        // points.reserve(26);
         
-        points.push_back(Vector3f( 0.000000, -0.459543, 0.0 ));
-        points.push_back(Vector3f( 0.000000, -0.459544, 0.0 ));
-        points.push_back(Vector3f( 0.000000, -0.459545, 0.0 ));
-        points.push_back(Vector3f( -0.351882, -0.426747, 0.0 ));
-        points.push_back(Vector3f( -0.848656, -0.278898, 0.0 ));
-        points.push_back(Vector3f( -1.112097, 0.084005, 0.0 ));
-        points.push_back(Vector3f( -1.164785, 1.105511, 0.0 ));
-        points.push_back(Vector3f( -0.991667, 2.328629, 0.0 ));
-        points.push_back(Vector3f( -1.029301, 2.503360, 0.0 ));
-        points.push_back(Vector3f( -1.088800, 2.345600, 0.0 ));
-        points.push_back(Vector3f( -1.278000, 1.162800, 0.0 ));
-        points.push_back(Vector3f( -1.214800, 0.055200, 0.0 ));
-        points.push_back(Vector3f( -0.915600, -0.381200, 0.0 ));
-        points.push_back(Vector3f( -0.380400, -0.622000, 0.0 ));
-        points.push_back(Vector3f( -0.144000, -0.968400, 0.0 ));
-        points.push_back(Vector3f( -0.096800, -1.480000, 0.0 ));
-        points.push_back(Vector3f( -0.128400, -2.112400, 0.0 ));
-        points.push_back(Vector3f( -0.317200, -2.202800, 0.0 ));
-        points.push_back(Vector3f( -0.994400, -2.262800, 0.0 ));
-        points.push_back(Vector3f( -1.214800, -2.323200, 0.0 ));
-        points.push_back(Vector3f( -1.199200, -2.398400, 0.0 ));
-        points.push_back(Vector3f( -1.057600, -2.458800, 0.0 ));
-        points.push_back(Vector3f( -0.711200, -2.458800, 0.0 ));
-        points.push_back(Vector3f(  0.000000, -2.458800, 0.0 ));
-        points.push_back(Vector3f(  0.000000, -2.458801, 0.0 ));
-        points.push_back(Vector3f( 0.000000, -2.458802, 0.0 ));
+        // points.push_back(Vector3f( 0.000000, -0.459543, 0.0 ));
+        // points.push_back(Vector3f( 0.000000, -0.459544, 0.0 ));
+        // points.push_back(Vector3f( 0.000000, -0.459545, 0.0 ));
+        // points.push_back(Vector3f( -0.351882, -0.426747, 0.0 ));
+        // points.push_back(Vector3f( -0.848656, -0.278898, 0.0 ));
+        // points.push_back(Vector3f( -1.112097, 0.084005, 0.0 ));
+        // points.push_back(Vector3f( -1.164785, 1.105511, 0.0 ));
+        // points.push_back(Vector3f( -0.991667, 2.328629, 0.0 ));
+        // points.push_back(Vector3f( -1.029301, 2.503360, 0.0 ));
+        // points.push_back(Vector3f( -1.088800, 2.345600, 0.0 ));
+        // points.push_back(Vector3f( -1.278000, 1.162800, 0.0 ));
+        // points.push_back(Vector3f( -1.214800, 0.055200, 0.0 ));
+        // points.push_back(Vector3f( -0.915600, -0.381200, 0.0 ));
+        // points.push_back(Vector3f( -0.380400, -0.622000, 0.0 ));
+        // points.push_back(Vector3f( -0.144000, -0.968400, 0.0 ));
+        // points.push_back(Vector3f( -0.096800, -1.480000, 0.0 ));
+        // points.push_back(Vector3f( -0.128400, -2.112400, 0.0 ));
+        // points.push_back(Vector3f( -0.317200, -2.202800, 0.0 ));
+        // points.push_back(Vector3f( -0.994400, -2.262800, 0.0 ));
+        // points.push_back(Vector3f( -1.214800, -2.323200, 0.0 ));
+        // points.push_back(Vector3f( -1.199200, -2.398400, 0.0 ));
+        // points.push_back(Vector3f( -1.057600, -2.458800, 0.0 ));
+        // points.push_back(Vector3f( -0.711200, -2.458800, 0.0 ));
+        // points.push_back(Vector3f(  0.000000, -2.458800, 0.0 ));
+        // points.push_back(Vector3f(  0.000000, -2.458801, 0.0 ));
+        // points.push_back(Vector3f( 0.000000, -2.458802, 0.0 ));
+
+        points.push_back(Vector3f( -2, 2, 0 ));
+        points.push_back(Vector3f( -4, 0, 0 ));
+        points.push_back(Vector3f( 0, 0, 0 ));
+        points.push_back(Vector3f( -2, -2, 0 ));
+
                     
-        shared_ptr<Curve> curve = make_shared<BsplineCurve>(points);
+        shared_ptr<Curve> curve = make_shared<BezierCurve>(points);
         shared_ptr<Object3D> wineglass = make_shared<RevSurface>(curve, make_shared<Lambertian>(Vector3f(0.2, 0.3, 0.8)));
-        wineglass = make_shared<Transform>(wineglass, Vector3f(25, 25, 25), Vector3f(278, 278, 278), 0, 0, 0);
+        wineglass = make_shared<Transform>(wineglass, Vector3f(30, 30, 30), Vector3f(278, 278, 278), 0, 0, 0);
         
         group->addObject(wineglass);
         group->addObject(r1);

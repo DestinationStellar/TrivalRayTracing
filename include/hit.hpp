@@ -3,6 +3,7 @@
 
 #include <vecmath.h>
 #include "ray.hpp"
+#include "utils.hpp"
 
 class Material;
 
@@ -21,7 +22,7 @@ public:
         intersectP = Vector3f::ZERO;
     }
 
-    Hit(float _t, float _time, bool _f, Material *m, const Vector3f &n, const Vector3f &p) {
+    Hit(float _t, float _time, bool _f, shared_ptr<Material> m, const Vector3f &n, const Vector3f &p) {
         t = _t;
         time = _time;
         frontFace = _f;
@@ -50,7 +51,7 @@ public:
         return frontFace;
     }
 
-    Material *getMaterial() const {
+    shared_ptr<Material> getMaterial() const {
         return material;
     }
 
@@ -62,7 +63,7 @@ public:
         return intersectP;
     }
 
-    void set(float _t, Material *m, const Vector3f &outside_n, const Ray &r) {
+    void set(float _t, shared_ptr<Material> m, const Vector3f &outside_n, const Ray &r) {
         t = _t;
         material = m;
         frontFace = Vector3f::dot(r.getDirection(), outside_n) < 0;
@@ -85,7 +86,7 @@ public:
     float t;
     float time; 
     bool frontFace;
-    Material *material;
+    shared_ptr<Material> material;
     Vector3f normal;
     Vector3f intersectP;
 };

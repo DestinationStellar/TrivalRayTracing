@@ -13,11 +13,14 @@ SET(FINAL_SOURCES
         src/mesh.cpp
         src/scene_parser.cpp
         src/texture.cpp
+        src/pdf.cpp
+        src/bvh.cpp
         )
 
 SET(FINAL_INCLUDES
         deps/stb_image/stb_image.h
         deps/stb_image/stb_image_write.h
+        deps/tiny_obj/tiny_obj_loader.h
         include/camera.hpp
         include/group.hpp
         include/hit.hpp
@@ -28,6 +31,7 @@ SET(FINAL_INCLUDES
         include/object3d.hpp
         include/plane.hpp
         include/ray.hpp
+        include/pdf.hpp
         include/scene_parser.hpp
         include/sphere.hpp
         include/transform.hpp
@@ -45,6 +49,7 @@ SET(FINAL_INCLUDES
         include/box.hpp
         include/constant_medium.hpp
         include/scene_generator.hpp
+        include/onb.hpp
         )
 
 SET(CMAKE_CXX_STANDARD 11)

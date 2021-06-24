@@ -8,7 +8,7 @@
 class Rectangle : public Object3D {
 public:
     Rectangle () {}
-    Rectangle (const Vector3f &_center, const Vector3f &d_len, const Vector3f &d_wid, float len, float wid, Material *m): Object3D(m) {
+    Rectangle (const Vector3f &_center, const Vector3f &d_len, const Vector3f &d_wid, float len, float wid, shared_ptr<Material> m): Object3D(m) {
         center = _center;
         dir_len = d_len.normalized();
         dir_wid = d_wid.normalized();
@@ -56,6 +56,26 @@ public:
         );
         return true;
     }
+
+    double pdf_value(const Vector3f& origin, const Vector3f& v) const override {
+        Hit rec;
+        if (!this->intersect(Ray(origin, v), rec, 0.001, infinity))
+            return 0;
+
+        float area = halfL * halfW * 4;
+        float distance_squared = rec.getT() * rec.getT() * v.squaredLength();
+        float cosine = fabs(Vector3f::dot(v, rec.normal) / v.length());
+
+        return distance_squared / (cosine * area);
+    }
+
+    Vector3f random(const Vector3f& origin) const override {
+        float randL = random_double(-halfL, halfL);
+        float randW = random_double(-halfW, halfW);
+        Vector3f random_point = center + randL * dir_len + randW * dir_wid;
+        return random_point - origin;
+    }
+
 protected:
     Vector3f normal;
     Vector3f center;

@@ -17,17 +17,19 @@ class AABB {
         Vector3f min() const {return minimum; }
         Vector3f max() const {return maximum; }
 
-        bool intersect(const Ray& r, float t_min, float t_max) const {
+        bool intersect(const Ray& r, float &t_min, float t_max) const {
+            float tmin = t_min, tmax = t_max;
             for (int a = 0; a < 3; a++) {
                 auto t0 = fmin((minimum[a] - r.getOrigin()[a]) / r.getDirection()[a],
                                (maximum[a] - r.getOrigin()[a]) / r.getDirection()[a]);
                 auto t1 = fmax((minimum[a] - r.getOrigin()[a]) / r.getDirection()[a],
                                (maximum[a] - r.getOrigin()[a]) / r.getDirection()[a]);
-                t_min = fmax(t0, t_min);
-                t_max = fmin(t1, t_max);
-                if (t_max <= t_min)
+                tmin = fmax(t0, tmin);
+                tmax = fmin(t1, tmax);
+                if (tmax <= tmin)
                     return false;
             }
+            t_min = tmin;
             return true;
         }
 

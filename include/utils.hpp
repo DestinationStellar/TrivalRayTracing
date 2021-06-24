@@ -3,6 +3,10 @@
 
 #include <vecmath.h>
 #include <limits>
+#include <memory>
+
+using std::shared_ptr;
+using std::make_shared;
 
 const double infinity = std::numeric_limits<double>::infinity();
 
@@ -79,6 +83,28 @@ inline Vector3f refract(const Vector3f& uv, const Vector3f& n, double etai_over_
     Vector3f r_out_perp =  etai_over_etat * (uv + cos_theta*n);
     Vector3f r_out_parallel = -sqrt(fabs(1.0 - r_out_perp.squaredLength())) * n;
     return r_out_perp + r_out_parallel;
+}
+
+inline Vector3f random_cosine_direction() {
+    auto r1 = random_double();
+    auto r2 = random_double();
+    auto z = sqrt(1-r2);
+
+    auto phi = 2*M_PI*r1;
+    auto x = cos(phi)*sqrt(r2);
+    auto y = sin(phi)*sqrt(r2);
+
+    return Vector3f(x, y, z);
+}
+
+// transforms a 3D point using a matrix, returning a 3D point
+static Vector3f transformPoint(const Matrix4f &mat, const Vector3f &point) {
+    return (mat * Vector4f(point, 1)).xyz();
+}
+
+// transform a 3D directino using a matrix, returning a direction
+static Vector3f transformDirection(const Matrix4f &mat, const Vector3f &dir) {
+    return (mat * Vector4f(dir, 0)).xyz();
 }
 
 #endif // UTILS_H

@@ -9,10 +9,11 @@
 #include "utils.hpp"
 
 
+
 class Mesh : public Object3D {
 
 public:
-    Mesh(const char *filename, Material *m);
+    Mesh(const char *filename, shared_ptr<Material> m);
 
     struct TriangleIndex {
         TriangleIndex() {
@@ -27,6 +28,8 @@ public:
     std::vector<Vector3f> v;
     std::vector<TriangleIndex> t;
     std::vector<Vector3f> n;
+    std::vector<shared_ptr<Object3D>> triangle;
+    shared_ptr<Object3D> triangle_bvh;
     bool intersect(const Ray &r, Hit &h, float tmin = 0.0, float tmax = infinity) const override;
     bool bounding_box(double time0, double time1, AABB& output_box) const override;
 

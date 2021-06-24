@@ -7,15 +7,13 @@
 
 class ConstantMedium : public Object3D {
 public:
-    ConstantMedium(Object3D* b, double d, Texture* m)
-        : boundary(b), neg_inv_density(-1/d) {
-            phase_function = new Isotropic(m);
+    ConstantMedium(shared_ptr<Object3D> b, double d, shared_ptr<Texture> m)
+        : boundary(b), neg_inv_density(-1/d), phase_function(make_shared<Isotropic>(m)) {
             material = phase_function;
     }
     
-    ConstantMedium(Object3D* b, double d, Vector3f c)
-        : boundary(b), neg_inv_density(-1/d) {
-            phase_function = new Isotropic(c);
+    ConstantMedium(shared_ptr<Object3D> b, double d, Vector3f c)
+        : boundary(b), neg_inv_density(-1/d), phase_function(make_shared<Isotropic>(c)) {
             material = phase_function;
     }   
 
@@ -72,8 +70,8 @@ public:
         return boundary->bounding_box(time0, time1, output_box);
     }
 protected:
-    Object3D* boundary;
-    Material* phase_function;
+    shared_ptr<Object3D> boundary;
+    shared_ptr<Material> phase_function;
     double neg_inv_density;
 };
 

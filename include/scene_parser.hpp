@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <vecmath.h>
+#include <memory>
 
 class Camera;
 class Light;
@@ -17,6 +18,10 @@ class Triangle;
 class Transform;
 class Mesh;
 class MovingSphere;
+class Curve;
+class RevSurface;
+
+using std::shared_ptr;
 
 #define MAX_PARSER_TOKEN_LENGTH 1024
 
@@ -65,7 +70,7 @@ public:
         return num_materials;
     }
 
-    Material *getMaterial(int i) const {
+    shared_ptr<Material> getMaterial(int i) const {
         assert(i >= 0 && i < num_materials);
         return materials[i];
     }
@@ -74,7 +79,7 @@ public:
         return num_textures;
     }
 
-    Texture *getTexture(int i) const {
+    shared_ptr<Texture> getTexture(int i) const {
         assert(i >= 0 && i < num_textures);
         return textures[i];
     }
@@ -94,18 +99,21 @@ private:
     Light *parseDirectionalLight();
     Light *parseAmbientLight();
     void parseMaterials();
-    Material *parseMaterial(char token[MAX_PARSER_TOKEN_LENGTH]);
+    shared_ptr<Material> parseMaterial(char token[MAX_PARSER_TOKEN_LENGTH]);
     void parseTextures();
-    Texture *parseTexture(char token[MAX_PARSER_TOKEN_LENGTH]);
-    Object3D *parseObject(char token[MAX_PARSER_TOKEN_LENGTH]);
-    Group *parseGroup();
-    Sphere *parseSphere();
-    Plane *parsePlane();
-    Rectangle *parseRectangle();
-    Triangle *parseTriangle();
-    Mesh *parseTriangleMesh();
-    Transform *parseTransform();
-    MovingSphere *parseMovingSphere();
+    shared_ptr<Texture> parseTexture(char token[MAX_PARSER_TOKEN_LENGTH]);
+    shared_ptr<Object3D> parseObject(char token[MAX_PARSER_TOKEN_LENGTH]);
+    Group* parseGroup();
+    shared_ptr<Sphere> parseSphere();
+    shared_ptr<Plane> parsePlane();
+    shared_ptr<Rectangle> parseRectangle();
+    shared_ptr<Triangle> parseTriangle();
+    shared_ptr<Mesh> parseTriangleMesh();
+    shared_ptr<Transform> parseTransform();
+    shared_ptr<MovingSphere> parseMovingSphere();
+    shared_ptr<Curve> parseBezierCurve();
+    shared_ptr<Curve> parseBsplineCurve();
+    shared_ptr<RevSurface> parseRevSurface();
 
 
     int getToken(char token[MAX_PARSER_TOKEN_LENGTH]);
@@ -125,11 +133,11 @@ private:
     Light **lights;
     Light *ambientLight;
     int num_materials;
-    Material **materials;
-    Material *current_material;
+    shared_ptr<Material>* materials;
+    shared_ptr<Material> current_material;
     int num_textures;
-    Texture **textures;
-    Texture *current_texture;
+    shared_ptr<Texture> *textures;
+    shared_ptr<Texture> current_texture;
     Group *group;
 };
 

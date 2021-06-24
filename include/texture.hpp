@@ -37,25 +37,26 @@ class CheckerTexture : public Texture {
     public:
         CheckerTexture() {}
 
-        CheckerTexture(Texture *_even, Texture *_odd)
-            : even(_even), odd(_odd) {}
+        CheckerTexture(double scale, shared_ptr<Texture> _even, shared_ptr<Texture> _odd)
+            :inv_scale(1.0/scale), even(_even), odd(_odd) {}
 
-        CheckerTexture(Vector3f c1, Vector3f c2) {
-            even = new SolidColor(c1);
-            odd = new SolidColor(c2);
-        }
+        CheckerTexture(double scale, Vector3f c1, Vector3f c2)
+            : inv_scale(1.0/scale), even(make_shared<SolidColor>(c1)), odd(make_shared<SolidColor>(c2)) {}
 
         virtual Vector3f value(double u, double v, const Vector3f& p) const override {
-            auto sines = sin(10*p.x())*sin(10*p.y())*sin(10*p.z());
-            if (sines < 0)
-                return odd->value(u, v, p);
-            else
-                return even->value(u, v, p);
+            auto xInteger = static_cast<int>(std::floor(inv_scale * p.x()));
+            auto yInteger = static_cast<int>(std::floor(inv_scale * p.y()));
+            auto zInteger = static_cast<int>(std::floor(inv_scale * p.z()));
+
+            bool isEven = (xInteger + yInteger + zInteger) % 2 == 0;
+
+            return isEven ? even->value(u, v, p) : odd->value(u, v, p);
         }
 
     public:
-        Texture *odd;
-        Texture *even;
+        shared_ptr<Texture> odd;
+        shared_ptr<Texture> even;
+        double inv_scale;
 };
 
 
@@ -67,7 +68,8 @@ class NoiseTexture : public Texture {
         virtual Vector3f value(double u, double v, const Vector3f& p) const override {
             // return Vector3f(1,1,1)*0.5*(1 + noise.turb(scale * p));
             // return Vector3f(1,1,1)*noise.turb(scale * p);
-            return Vector3f(1,1,1)*0.5*(1 + sin(scale*p.z() + 10*noise.turb(p)));
+            Vector3f s = scale * p;
+            return Vector3f(1,1,1)*0.5*(1 + sin(s.z() + 10*noise.turb(s)));
         }
 
     public:

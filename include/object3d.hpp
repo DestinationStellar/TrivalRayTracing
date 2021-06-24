@@ -14,7 +14,7 @@ public:
 
     virtual ~Object3D() = default;
 
-    explicit Object3D(Material *material) {
+    explicit Object3D(shared_ptr<Material> material) {
         this->material = material;
     }
 
@@ -22,9 +22,17 @@ public:
     virtual bool intersect(const Ray &r, Hit &h, float tmin = 0.0, float tmax = infinity) const = 0;
 
     virtual bool bounding_box(double time0, double time1, AABB& output_box) const = 0;
+
+    virtual double pdf_value(const Vector3f& o, const Vector3f& v) const {
+        return 0.0;
+    }
+
+    virtual Vector3f random(const Vector3f& o) const {
+        return Vector3f(1,0,0);
+    }
 protected:
 
-    Material *material;
+    shared_ptr<Material> material;
 };
 
 #endif

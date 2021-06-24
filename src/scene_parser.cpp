@@ -2,6 +2,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
+#include <vector>
 
 #include "scene_parser.hpp"
 #include "utils.hpp"
@@ -17,6 +18,8 @@
 #include "triangle.hpp"
 #include "transform.hpp"
 #include "moving_sphere.hpp"
+#include "curve.hpp"
+#include "revsurface.hpp"
 
 SceneParser::SceneParser(const char *filename) {
 
@@ -275,7 +278,7 @@ void SceneParser::parseMaterials() {
     getToken(token);
     assert (!strcmp(token, "numMaterials"));
     num_materials = readInt();
-    materials = new Material *[num_materials];
+    materials = new shared_ptr<Material> [num_materials];
     // read in the materials
     int count = 0;
     while (num_materials > count) {
@@ -297,11 +300,11 @@ void SceneParser::parseMaterials() {
 }
 
 
-Material *SceneParser::parseMaterial(char type[MAX_PARSER_TOKEN_LENGTH]) {
+shared_ptr<Material> SceneParser::parseMaterial(char type[MAX_PARSER_TOKEN_LENGTH]) {
     char token[MAX_PARSER_TOKEN_LENGTH];
     Vector3f ambientColor(0, 0, 0), diffuseColor(0, 0, 0), specularColor(0, 0, 0), albedo(0, 0, 0);
     float shininess = 0, fuzz = 0, ir=0, illumination=1;
-    Texture *m_texture = nullptr;
+    shared_ptr<Texture> m_texture = nullptr;
     Vector3f lightColor(1, 1, 1);
     getToken(token);
     assert (!strcmp(token, "{"));
@@ -332,19 +335,19 @@ Material *SceneParser::parseMaterial(char type[MAX_PARSER_TOKEN_LENGTH]) {
             break;
         }
     }
-    Material *answer = nullptr;
+    shared_ptr<Material> answer = nullptr;
     if(!strcmp(type, "Material")||!strcmp(type, "Lambertian")){
-        if (!m_texture) m_texture = new SolidColor(Vector3f::ZERO);
-        answer = new Lambertian(ambientColor, diffuseColor, specularColor, shininess, m_texture);
+        if (!m_texture) m_texture = make_shared<SolidColor>(Vector3f::ZERO);
+        answer = make_shared<Lambertian>(ambientColor, diffuseColor, specularColor, shininess, m_texture);
     } else if (!strcmp(type, "Metal")){
-        answer = new Metal(ambientColor, diffuseColor, specularColor, shininess, albedo, fuzz);
+        answer = make_shared<Metal>(ambientColor, diffuseColor, specularColor, shininess, albedo, fuzz);
     } else if (!strcmp(type, "Dielectric")){
-        answer = new Dielectric(ambientColor, diffuseColor, specularColor, shininess, ir);
+        answer = make_shared<Dielectric>(ambientColor, diffuseColor, specularColor, shininess, ir);
     } else if (!strcmp(type, "Light")){
         if (m_texture) {
-            answer = new DiffuseLight(ambientColor, diffuseColor, specularColor, shininess, m_texture, illumination);
+            answer = make_shared<DiffuseLight>(ambientColor, diffuseColor, specularColor, shininess, m_texture, illumination);
         } else {
-            answer = new DiffuseLight(ambientColor, diffuseColor, specularColor, shininess, lightColor, illumination);
+            answer = make_shared<DiffuseLight>(ambientColor, diffuseColor, specularColor, shininess, lightColor, illumination);
         } 
     }
     return answer;
@@ -361,7 +364,7 @@ void SceneParser::parseTextures() {
     getToken(token);
     assert (!strcmp(token, "numTextures"));
     num_textures = readInt();
-    textures = new Texture *[num_textures];
+    textures = new shared_ptr<Texture> [num_textures];
     // read in the textures
     int count = 0;
     while (num_textures > count) {
@@ -381,36 +384,39 @@ void SceneParser::parseTextures() {
     assert (!strcmp(token, "}"));
 }
 
-Texture *SceneParser::parseTexture(char type[MAX_PARSER_TOKEN_LENGTH]) {
+shared_ptr<Texture> SceneParser::parseTexture(char type[MAX_PARSER_TOKEN_LENGTH]) {
     char token[MAX_PARSER_TOKEN_LENGTH];
-    Texture *answer = nullptr;
+    shared_ptr<Texture> answer = nullptr;
     getToken(token);
     assert (!strcmp(token, "{"));
     if(!strcmp(type, "Color")){
         getToken(token);
         assert(!strcmp(token, "color"));
         Vector3f color = readVector3f();
-        answer = new SolidColor(color);
+        answer = make_shared<SolidColor>(color);
     } else if (!strcmp(type, "Checker")){
+        getToken(token);
+        assert(!strcmp(token, "scale"));
+        float scale = readFloat();
         getToken(token);
         assert(!strcmp(token, "color1"));
         Vector3f color1 = readVector3f();
         getToken(token);
         assert(!strcmp(token, "color2"));
         Vector3f color2 = readVector3f();
-        answer = new CheckerTexture(color1, color2);
+        answer = make_shared<CheckerTexture>(scale, color1, color2);
     } else if (!strcmp(type, "Noise")){
         getToken(token);
         assert(!strcmp(token, "scale"));
         float scale = readFloat();
-        answer = new NoiseTexture(scale);
+        answer = make_shared<NoiseTexture>(scale);
     } else if (!strcmp(type, "Image")){
         char filename[MAX_PARSER_TOKEN_LENGTH];
         filename[0] = 0;
         getToken(token);
         assert(!strcmp(token, "file"));
         getToken(filename);
-        answer = new ImageTexture(filename);
+        answer = make_shared<ImageTexture>(filename);
     }
     getToken(token);
     assert (!strcmp(token, "}"));
@@ -420,24 +426,24 @@ Texture *SceneParser::parseTexture(char type[MAX_PARSER_TOKEN_LENGTH]) {
 // ====================================================================
 // ====================================================================
 
-Object3D *SceneParser::parseObject(char token[MAX_PARSER_TOKEN_LENGTH]) {
-    Object3D *answer = nullptr;
+shared_ptr<Object3D> SceneParser::parseObject(char token[MAX_PARSER_TOKEN_LENGTH]) {
+    shared_ptr<Object3D> answer = nullptr;
     if (!strcmp(token, "Group")) {
-        answer = (Object3D *) parseGroup();
+        answer = (shared_ptr<Object3D>) parseGroup();
     } else if (!strcmp(token, "Sphere")) {
-        answer = (Object3D *) parseSphere();
+        answer = (shared_ptr<Object3D>) parseSphere();
     } else if (!strcmp(token, "Plane")) {
-        answer = (Object3D *) parsePlane();
+        answer = (shared_ptr<Object3D>) parsePlane();
     } else if (!strcmp(token, "Rectangle")) {
-        answer = (Object3D *) parseRectangle();
+        answer = (shared_ptr<Object3D>) parseRectangle();
     } else if (!strcmp(token, "Triangle")) {
-        answer = (Object3D *) parseTriangle();
+        answer = (shared_ptr<Object3D>) parseTriangle();
     } else if (!strcmp(token, "TriangleMesh")) {
-        answer = (Object3D *) parseTriangleMesh();
+        answer = (shared_ptr<Object3D>) parseTriangleMesh();
     } else if (!strcmp(token, "Transform")) {
-        answer = (Object3D *) parseTransform();
+        answer = (shared_ptr<Object3D>) parseTransform();
     } else if (!strcmp(token, "MovingSphere")) {
-        answer = (Object3D *) parseMovingSphere();
+        answer = (shared_ptr<Object3D>) parseMovingSphere();
     } else {
         printf("Unknown token in parseObject: '%s'\n", token);
         exit(0);
@@ -478,7 +484,7 @@ Group *SceneParser::parseGroup() {
             assert (index >= 0 && index <= getNumMaterials());
             current_material = getMaterial(index);
         } else {
-            Object3D *object = parseObject(token);
+            shared_ptr<Object3D>object = parseObject(token);
             assert (object != nullptr);
             answer->addObject(count, object);
 
@@ -495,7 +501,7 @@ Group *SceneParser::parseGroup() {
 // ====================================================================
 // ====================================================================
 
-Sphere *SceneParser::parseSphere() {
+shared_ptr<Sphere> SceneParser::parseSphere() {
     char token[MAX_PARSER_TOKEN_LENGTH];
     getToken(token);
     assert (!strcmp(token, "{"));
@@ -508,11 +514,11 @@ Sphere *SceneParser::parseSphere() {
     getToken(token);
     assert (!strcmp(token, "}"));
     assert (current_material != nullptr);
-    return new Sphere(center, radius, current_material);
+    return make_shared<Sphere>(center, radius, current_material);
 }
 
 
-Plane *SceneParser::parsePlane() {
+shared_ptr<Plane> SceneParser::parsePlane() {
     char token[MAX_PARSER_TOKEN_LENGTH];
     getToken(token);
     assert (!strcmp(token, "{"));
@@ -525,10 +531,10 @@ Plane *SceneParser::parsePlane() {
     getToken(token);
     assert (!strcmp(token, "}"));
     assert (current_material != nullptr);
-    return new Plane(normal, offset, current_material);
+    return make_shared<Plane>(normal, offset, current_material);
 }
 
-Rectangle *SceneParser::parseRectangle() {
+shared_ptr<Rectangle> SceneParser::parseRectangle() {
     char token[MAX_PARSER_TOKEN_LENGTH];
     getToken(token);
     assert (!strcmp(token, "{"));
@@ -550,11 +556,11 @@ Rectangle *SceneParser::parseRectangle() {
     getToken(token);
     assert (!strcmp(token, "}"));
     assert (current_material != nullptr);
-    return new Rectangle(center, d_len, d_wid, len, wid, current_material);
+    return make_shared<Rectangle>(center, d_len, d_wid, len, wid, current_material);
 }
 
 
-Triangle *SceneParser::parseTriangle() {
+shared_ptr<Triangle> SceneParser::parseTriangle() {
     char token[MAX_PARSER_TOKEN_LENGTH];
     getToken(token);
     assert (!strcmp(token, "{"));
@@ -570,10 +576,10 @@ Triangle *SceneParser::parseTriangle() {
     getToken(token);
     assert (!strcmp(token, "}"));
     assert (current_material != nullptr);
-    return new Triangle(v0, v1, v2, current_material);
+    return make_shared<Triangle>(v0, v1, v2, current_material);
 }
 
-Mesh *SceneParser::parseTriangleMesh() {
+shared_ptr<Mesh> SceneParser::parseTriangleMesh() {
     char token[MAX_PARSER_TOKEN_LENGTH];
     char filename[MAX_PARSER_TOKEN_LENGTH];
     // get the filename
@@ -586,16 +592,14 @@ Mesh *SceneParser::parseTriangleMesh() {
     assert (!strcmp(token, "}"));
     const char *ext = &filename[strlen(filename) - 4];
     assert(!strcmp(ext, ".obj"));
-    Mesh *answer = new Mesh(filename, current_material);
-
-    return answer;
+    return make_shared<Mesh>(filename, current_material) ;
 }
 
 
-Transform *SceneParser::parseTransform() {
+shared_ptr<Transform> SceneParser::parseTransform() {
     char token[MAX_PARSER_TOKEN_LENGTH];
     Matrix4f matrix = Matrix4f::identity();
-    Object3D *object = nullptr;
+    shared_ptr<Object3D>object = nullptr;
     getToken(token);
     assert (!strcmp(token, "{"));
     // read in transformations: 
@@ -652,10 +656,10 @@ Transform *SceneParser::parseTransform() {
     assert(object != nullptr);
     getToken(token);
     assert (!strcmp(token, "}"));
-    return new Transform(matrix, object);
+    return make_shared<Transform>(matrix, object);
 }
 
-MovingSphere *SceneParser::parseMovingSphere() {
+shared_ptr<MovingSphere> SceneParser::parseMovingSphere() {
     char token[MAX_PARSER_TOKEN_LENGTH];
     getToken(token);
     assert (!strcmp(token, "{"));
@@ -677,7 +681,75 @@ MovingSphere *SceneParser::parseMovingSphere() {
     getToken(token);
     assert (!strcmp(token, "}"));
     assert (current_material != nullptr);
-    return new MovingSphere(center0, center1, time0, time1, radius, current_material);
+    return make_shared<MovingSphere>(center0, center1, time0, time1, radius, current_material);
+}
+
+shared_ptr<Curve> SceneParser::parseBezierCurve() {
+    char token[MAX_PARSER_TOKEN_LENGTH];
+    getToken(token);
+    assert (!strcmp(token, "{"));
+    getToken(token);
+    assert (!strcmp(token, "controls"));
+    std::vector<Vector3f> controls;
+    while (true) {
+        getToken(token);
+        if (!strcmp(token, "[")) {
+            controls.push_back(readVector3f());
+            getToken(token);
+            assert (!strcmp(token, "]"));
+        } else if (!strcmp(token, "}")) {
+            break;
+        } else {
+            printf("Incorrect format for BezierCurve!\n");
+            exit(0);
+        }
+    }
+    return make_shared<BezierCurve>(controls);
+}
+
+
+shared_ptr<Curve> SceneParser::parseBsplineCurve() {
+    char token[MAX_PARSER_TOKEN_LENGTH];
+    getToken(token);
+    assert (!strcmp(token, "{"));
+    getToken(token);
+    assert (!strcmp(token, "controls"));
+    std::vector<Vector3f> controls;
+    while (true) {
+        getToken(token);
+        if (!strcmp(token, "[")) {
+            controls.push_back(readVector3f());
+            getToken(token);
+            assert (!strcmp(token, "]"));
+        } else if (!strcmp(token, "}")) {
+            break;
+        } else {
+            printf("Incorrect format for BsplineCurve!\n");
+            exit(0);
+        }
+    }
+    return make_shared<BsplineCurve>(controls);
+}
+
+shared_ptr<RevSurface> SceneParser::parseRevSurface() {
+    char token[MAX_PARSER_TOKEN_LENGTH];
+    getToken(token);
+    assert (!strcmp(token, "{"));
+    getToken(token);
+    assert (!strcmp(token, "profile"));
+    shared_ptr<Curve> profile;
+    getToken(token);
+    if (!strcmp(token, "BezierCurve")) {
+        profile = parseBezierCurve();
+    } else if (!strcmp(token, "BsplineCurve")) {
+        profile = parseBsplineCurve();
+    } else {
+        printf("Unknown profile type in parseRevSurface: '%s'\n", token);
+        exit(0);
+    }
+    getToken(token);
+    assert (!strcmp(token, "}"));
+    return make_shared<RevSurface>(profile, current_material);
 }
 
 // ====================================================================

@@ -66,6 +66,8 @@ int main(int argc, char *argv[]) {
 
     Image renderedImg(image_width,image_height);
 
+    cout << "scene loaded!" << endl;
+
     // Main RayCasting Logic
     // First, parse the scene using SceneParser.
     // Then loop over each pixel in the image, shooting a ray
@@ -74,18 +76,25 @@ int main(int argc, char *argv[]) {
     // pixel in your output image.
     for (int x = 0; x < image_width; ++x) {
          printf("\rrendering image pass %.3lf%%", x*100.f/image_width);
-        #pragma omp parallel for schedule(dynamic, 60), num_threads(12)
+        // #pragma omp parallel for schedule(dynamic, 60), num_threads(12)
         for (int y = 0; y < image_height; ++y) {
             Vector3f finalColor = Vector3f::ZERO;
+            float actual_samples = sample_per_pixel; 
             for (int i=0; i<sample_per_pixel; i++) {
-                float bias_x = (rand()%sample_per_pixel)/(float)sample_per_pixel;
-                float bias_y = (rand()%sample_per_pixel)/(float)sample_per_pixel;
+                float bias_x = random_double(0,1);
+                float bias_y = random_double(0,1);
                 Ray camRay = camera->generateRay(Vector2f(x+bias_x, y+bias_y));
-                finalColor += rayTracer->traceRay(camRay, max_depth, init_weight);
+                Vector3f color = rayTracer->traceRay(camRay, max_depth, init_weight);
+                for (int i = 0; i < 3; i++) {
+                    if(color[i] != color[i]||color[i] < 0) {
+                        color[i] = 0;
+                        actual_samples -= 1;
+                    }
+                }
+                finalColor += color;
             }
-            finalColor = finalColor/(float)sample_per_pixel;
-            // gamma corrected 后续可能需要改到setpixel函数内部
-            finalColor = Vector3f(sqrt(clamp(finalColor[0])), sqrt(clamp(finalColor[1])), sqrt(clamp(finalColor[2])));
+            if (actual_samples < 1.0) actual_samples = 1.0;
+            finalColor = finalColor/actual_samples;
             renderedImg.SetPixel(x, y, finalColor);
         }
     }

@@ -10,7 +10,7 @@
 class Box : public Object3D {
 public:
     Box() {}
-    Box(const Vector3f &p0, const Vector3f &p1, Material* m):Object3D(m){
+    Box(const Vector3f &p0, const Vector3f &p1, shared_ptr<Material> m):Object3D(m){
         box_min = p0;
         box_max = p1;
 

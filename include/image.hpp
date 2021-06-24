@@ -39,9 +39,11 @@ public:
         }
     }
 
-    void SetPixel(int x, int y, const Vector3f &color) {
+    void SetPixel(int x, int y, Vector3f color) {
         assert(x >= 0 && x < width);
         assert(y >= 0 && y < height);
+        // gamma corrected
+        color = Vector3f(sqrt(color[0]), sqrt(color[1]), sqrt(color[2]));
         data[y * width + x] = color;
     }
 

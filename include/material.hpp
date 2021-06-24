@@ -8,7 +8,14 @@
 #include "hit.hpp"
 #include "texture.hpp"
 #include "utils.hpp"
+#include "pdf.hpp"
 
+struct ScatterRecord {
+    Ray specular_ray;
+    bool is_specular;
+    Vector3f attenuation;
+    shared_ptr<PDF> pdf_ptr;
+};
 class Material {
 public:
 
@@ -34,9 +41,15 @@ public:
         return specularColor;
     }
 
-    virtual bool Scatter(const Ray &r_in, const Hit &hit, Vector3f &attenuation, Ray &scattered) = 0;
+    virtual bool scatter(const Ray &r_in, const Hit &hit, ScatterRecord &srec) const {
+        return false;
+    }
 
-    virtual Vector3f emitted(double u, double v, const Vector3f& p, bool isLight = false) {
+    virtual double scatterPDF(const Ray &r_in, const Hit &hit, const Ray &scattered) const {
+        return 0;
+    }
+
+    virtual Vector3f emitted(const Hit &hit, double u, double v, const Vector3f& p, bool isLight = false) {
         return Vector3f(0,0,0);
     }
 
@@ -68,44 +81,50 @@ class Lambertian : public Material {
 public:
     Lambertian(
         const Vector3f &a_color, const Vector3f &d_color, const Vector3f &s_color = Vector3f::ZERO, float s = 0,
-        Texture * a = nullptr
+        shared_ptr<Texture> a = nullptr
     ): Material(a_color,d_color,s_color,s){
         albedo = a;
     }
     Lambertian(Vector3f c) {
-        albedo = new SolidColor(c);
+        albedo = make_shared<SolidColor>(c);
     }
-    Lambertian(Texture* a) {
+    Lambertian(shared_ptr<Texture> a) {
         albedo = a;
     }
-    bool Scatter(const Ray &r_in, const Hit &hit, Vector3f &attenuation, Ray &scattered) override {
-        Vector3f scatter_direction = hit.getNormal() + random_unit_vector();
-        // Catch degenerate scatter direction
-        if (near_zero(scatter_direction)){
-            scatter_direction = hit.getNormal();
-        }
-        scattered = Ray(hit.getIntersectP(), scatter_direction, r_in.getTime());
-        attenuation = albedo->value(hit.u, hit.v, hit.getIntersectP());
+    bool scatter(const Ray &r_in, const Hit &hit,  ScatterRecord &srec) const override {
+        srec.is_specular = false;
+        srec.attenuation = albedo->value(hit.u, hit.v, hit.getIntersectP());
+        srec.pdf_ptr = make_shared<CosinePDF>(hit.getNormal());
         return true;
     }
+    double scatterPDF(
+        const Ray& r_in, const Hit& rec, const Ray& scattered
+    ) const override {
+        auto cosine = Vector3f::dot(rec.getNormal(), scattered.getDirection().normalized());
+        return cosine < 0 ? 0 : cosine/M_PI;
+    }
 protected:
-    Texture *albedo;
+    shared_ptr<Texture> albedo;
 };
 
 class Metal : public Material {
 public:
     Metal(
-        const Vector3f &a_color, const Vector3f &d_color, const Vector3f &s_color = Vector3f::ZERO, float s = 0,
+        const Vector3f &a_color, const Vector3f &d_color, const Vector3f &s_color , float s = 0,
         const Vector3f &a = Vector3f::ZERO, float f = 0 
     ): Material(a_color,d_color,s_color,s){
         albedo = a;
         fuzz = f;
     }
-    bool Scatter(const Ray &r_in, const Hit &hit, Vector3f &attenuation, Ray &scattered) override {
-        Vector3f reflected = reflect(r_in.getDirection(), hit.getNormal());
-        scattered = Ray(hit.getIntersectP(),reflected+fuzz*random_in_unit_sphere(), r_in.getTime());
-        attenuation = albedo;
-        return (Vector3f::dot(scattered.getDirection(),hit.getNormal())>0);
+    Metal (const Vector3f &a, float f) : albedo(a), fuzz(f) {}
+    bool scatter(const Ray &r_in, const Hit &hit, ScatterRecord &srec) const override {
+        Vector3f reflected = reflect(r_in.getDirection().normalized(), hit.getNormal());
+        srec.specular_ray =
+            Ray(hit.getIntersectP(), reflected + fuzz*random_in_unit_sphere(), r_in.getTime());
+        srec.attenuation = albedo;
+        srec.is_specular = true;
+        srec.pdf_ptr = nullptr;
+        return true;
     }
 protected:
     Vector3f albedo;
@@ -116,18 +135,20 @@ class Dielectric : public Material {
 public:
     Dielectric(
         const Vector3f &a_color, const Vector3f &d_color, const Vector3f &s_color = Vector3f::ZERO, float s = 0,
-        float i = 0
+        float i = 0, Vector3f a = Vector3f(1.0, 1.0, 1.0)
     ): Material(a_color,d_color,s_color,s){
-        ir = i;
+        ir = i; attenuation = a;
     }
 
-    Dielectric(float i = 0): ir(i) {}
+    Dielectric(float i = 0, Vector3f a = Vector3f(1.0, 1.0 ,1.0)): ir(i), attenuation(a) {}
 
-    bool Scatter(const Ray &r_in, const Hit &hit, Vector3f &attenuation, Ray &scattered) override {
-        attenuation = Vector3f(1.0, 1.0, 1.0);
+    bool scatter(const Ray &r_in, const Hit &hit, ScatterRecord &srec) const override {
+        srec.is_specular = true;
+        srec.pdf_ptr = nullptr;
+        srec.attenuation = attenuation;
         double refraction_ratio = hit.getFrontFace() ? (1.0/ir) : ir;
 
-        Vector3f unit_direction = r_in.getDirection(); // unit vector required
+        Vector3f unit_direction = r_in.getDirection().normalized();
         double cos_theta = fmin(Vector3f::dot(-unit_direction, hit.getNormal()), 1.0);
         double sin_theta = sqrt(1.0 - cos_theta*cos_theta);
 
@@ -139,11 +160,12 @@ public:
         else
             direction = refract(unit_direction, hit.getNormal(), refraction_ratio);
 
-        scattered = Ray(hit.getIntersectP(), direction, r_in.getTime());
+        srec.specular_ray = Ray(hit.getIntersectP(), direction, r_in.getTime());
         return true;
     }
 protected:
     float ir;
+    Vector3f attenuation;
     static double reflectance(double cosine, double ref_idx) {
         // Use Schlick's approximation for reflectance.
         auto r0 = (1-ref_idx) / (1+ref_idx);
@@ -156,23 +178,28 @@ class DiffuseLight : public Material {
     public:
         DiffuseLight(
             const Vector3f &a_color, const Vector3f &d_color, const Vector3f &s_color = Vector3f::ZERO, float s = 0,
-            Texture* a = nullptr, float i = 1.0
+            shared_ptr<Texture> a = nullptr, float i = 1.0
         ): Material(a_color,d_color,s_color,s), emit(a), illumination(i) {}
+
         DiffuseLight(
             const Vector3f &a_color, const Vector3f &d_color, const Vector3f &s_color = Vector3f::ZERO, float s = 0,
             Vector3f c = Vector3f::ZERO, float i = 1.0
         ): Material(a_color,d_color,s_color,s), illumination(i) {
-            emit = new SolidColor(c);
+            emit = make_shared<SolidColor>(c);
         }
+
         DiffuseLight(Vector3f c, float i = 1.0): illumination(i) {
-            emit = new SolidColor(c);
+            emit = make_shared<SolidColor>(c);
         }
 
-        bool Scatter(const Ray& r_in, const Hit& rec, Vector3f& attenuation, Ray& scattered) override {
-            return false;
+        DiffuseLight(shared_ptr<Texture> a, float i = 1.0): illumination(i) {
+            emit = a;
         }
 
-        Vector3f emitted(double u, double v, const Vector3f& p, bool isLight = false) override {
+        Vector3f emitted(const Hit &hit, double u, double v, const Vector3f& p, bool isLight = false) override {
+            if (!hit.getFrontFace()) {
+                return Vector3f::ZERO;
+            }
             if (isLight){
                 return emit->value(u, v, p);
             }
@@ -180,27 +207,32 @@ class DiffuseLight : public Material {
         }
 
     public:
-        Texture* emit;
+        shared_ptr<Texture> emit;
         float illumination;
 };
 
 class Isotropic : public Material {
     public:
         Isotropic(Vector3f c) {
-            albedo = new SolidColor(c);
+            albedo = make_shared<SolidColor>(c);
         }
-        Isotropic(Texture* a) : albedo(a) {}
+        Isotropic(shared_ptr<Texture> a) : albedo(a) {}
 
-        virtual bool Scatter(
-            const Ray& r_in, const Hit& rec, Vector3f& attenuation, Ray& scattered
-        ) override {
-            scattered = Ray(rec.getIntersectP(), random_in_unit_sphere(), r_in.getTime());
-            attenuation = albedo->value(rec.u, rec.v, rec.getIntersectP());
+        virtual bool scatter(
+            const Ray& r_in, const Hit& rec, ScatterRecord &srec
+        ) const override {
+            srec.attenuation = albedo->value(rec.u, rec.v, rec.getIntersectP());
+            srec.is_specular = false;
+            srec.pdf_ptr = make_shared<SpherePDF>();
             return true;
         }
 
+        double scatterPDF(const Ray& r_in, const Hit& rec, const Ray& scattered) const override {
+            return 1 / (4 * M_PI);
+        }
+
     public:
-        Texture* albedo;
+        shared_ptr<Texture> albedo;
 };
 
 #endif // MATERIAL_H

@@ -10,7 +10,7 @@
 class Ray {
 public:
 
-    Ray() = delete;
+    Ray() {};
     Ray(const Vector3f &orig, const Vector3f &dir, float tm = 0.0) {
         origin = orig;
         direction = dir;

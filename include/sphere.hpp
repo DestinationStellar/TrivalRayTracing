@@ -6,6 +6,7 @@
 #include "object3d.hpp"
 #include "utils.hpp"
 #include "aabb.hpp"
+#include "onb.hpp"
 
 class Sphere : public Object3D {
 public:
@@ -15,7 +16,7 @@ public:
         this->radius=1;
     }
 
-    Sphere(const Vector3f &center, float radius, Material *material) : Object3D(material) {
+    Sphere(const Vector3f &center, float radius, shared_ptr<Material> material) : Object3D(material) {
         this->center=center;
         this->radius=radius;
     }
@@ -53,6 +54,25 @@ public:
         return true;
     }
 
+    double pdf_value(const Vector3f& o, const Vector3f& v) const {
+        Hit rec;
+        if (!this->intersect(Ray(o, v), rec, 0.001, infinity))
+            return 0;
+
+        auto cos_theta_max = sqrt(1 - radius*radius/(center-o).squaredLength());
+        auto solid_angle = 2*M_PI*(1-cos_theta_max);
+
+        return  1 / solid_angle;
+    }
+
+    Vector3f random(const Vector3f& o) const {
+        Vector3f direction = center - o;
+        auto distance_squared = direction.squaredLength();
+        ONB uvw;
+        uvw.build_from_w(direction);
+        return uvw.local(random_to_sphere(radius, distance_squared));
+    }
+
 protected:
     Vector3f center;
     float radius;
@@ -61,6 +81,17 @@ protected:
         auto theta = asin(p.y());
         u = 1-(phi + M_PI) / (2*M_PI);
         v = (theta + M_PI/2) / M_PI;
+    }
+    static Vector3f random_to_sphere(double radius, double distance_squared) {
+        auto r1 = random_double();
+        auto r2 = random_double();
+        auto z = 1 + r2*(sqrt(1-radius*radius/distance_squared) - 1);
+
+        auto phi = 2*M_PI*r1;
+        auto x = cos(phi)*sqrt(1-z*z);
+        auto y = sin(phi)*sqrt(1-z*z);
+
+        return Vector3f(x, y, z);
     }
 };
 

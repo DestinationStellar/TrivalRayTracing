@@ -5,33 +5,23 @@
 #include "object3d.hpp"
 #include "utils.hpp"
 
-// transforms a 3D point using a matrix, returning a 3D point
-static Vector3f transformPoint(const Matrix4f &mat, const Vector3f &point) {
-    return (mat * Vector4f(point, 1)).xyz();
-}
-
-// transform a 3D directino using a matrix, returning a direction
-static Vector3f transformDirection(const Matrix4f &mat, const Vector3f &dir) {
-    return (mat * Vector4f(dir, 0)).xyz();
-}
-
 class Transform : public Object3D {
 public:
     Transform() {}
 
     Transform(
-        Object3D *obj, const Vector3f &scale, const Vector3f &translate, float x, float y, float z
+        shared_ptr<Object3D> obj, const Vector3f &scale, const Vector3f &translate, float x, float y, float z
     ) : o(obj) {
         transform = Matrix4f::identity();
-        transform = transform * Matrix4f::scaling(scale[0], scale[1], scale[2]);
         transform = transform * Matrix4f::translation(translate);
         transform = transform * Matrix4f::rotateX(DegreesToRadians(x));
         transform = transform * Matrix4f::rotateY(DegreesToRadians(y));
         transform = transform * Matrix4f::rotateZ(DegreesToRadians(z));
+        transform = transform * Matrix4f::scaling(scale[0], scale[1], scale[2]);
         transform_ray = transform.inverse();
     }
 
-    Transform(const Matrix4f &m, Object3D *obj) : o(obj) {
+    Transform(const Matrix4f &m, shared_ptr<Object3D> obj) : o(obj) {
         transform = m;
         transform_ray = m.inverse();
     }
@@ -73,12 +63,12 @@ public:
             v[7][i] = tmax;
         }
         output_box.minimum = v[0];
-        output_box.maximum = v[1];
+        output_box.maximum = v[7];
 		return true;
 	}
 
 protected:
-    Object3D *o; //un-transformed object
+    shared_ptr<Object3D> o; //un-transformed object
     Matrix4f transform;
     Matrix4f transform_ray;
 };

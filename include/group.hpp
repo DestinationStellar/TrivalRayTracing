@@ -29,7 +29,7 @@ public:
         return objects.size();
     }
 
-    const std::vector<Object3D*> &getObjects() const {
+    const std::vector<shared_ptr<Object3D>> &getObjects() const {
         return objects;
     }
 
@@ -45,7 +45,7 @@ public:
         return flag;
     }
 
-    void addObject(int index, Object3D *obj) {
+    void addObject(int index, shared_ptr<Object3D> obj) {
         auto pos=objects.begin();
         while (index){
             index--;
@@ -54,7 +54,7 @@ public:
         objects.insert(pos,obj);
     }
     
-    void addObject(Object3D *obj) {
+    void addObject(shared_ptr<Object3D> obj) {
         objects.push_back(obj);
     }
 
@@ -73,8 +73,23 @@ public:
         return true;
     }
 
+    double pdf_value(const Vector3f &o, const Vector3f &v) const override {
+        auto weight = 1.0/objects.size();
+        auto sum = 0.0;
+
+        for (const auto& object : objects)
+            sum += weight * object->pdf_value(o, v);
+
+        return sum;
+    }
+
+    Vector3f random(const Vector3f &o) const override {
+        auto int_size = static_cast<int>(objects.size());
+        return objects[random_int(0, int_size-1)]->random(o);
+    }
+
 private:
-    std::vector<Object3D*> objects;
+    std::vector<shared_ptr<Object3D>> objects;
 };
 
 #endif

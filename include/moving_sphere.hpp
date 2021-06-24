@@ -11,7 +11,7 @@ class MovingSphere : public Object3D {
 public:
     MovingSphere() {}
     MovingSphere(
-        const Vector3f &cen0, const Vector3f &cen1, float t0, float t1, float r, Material* m
+        const Vector3f &cen0, const Vector3f &cen1, float t0, float t1, float r, shared_ptr<Material> m
     ): Object3D(m), center0(cen0), center1(cen1), time0(t0), time1(t1), radius(r)
     {};
 

@@ -26,11 +26,13 @@ if (!$OUTPUT_EXISTS){
     mkdir -Force output
 }
 
-# .\bin\FINAL.exe 0 3 .\output\next_week.bmp
+.\bin\FINAL.exe 0 5 .\output\bezier.bmp
+
+# .\bin\FINAL.exe 0 1 .\output\cornell_box_ball.bmp
 
 # .\bin\FINAL.exe 1 .\testcases\simpleLight.txt .\output\simpleLight.bmp
 
-.\bin\FINAL.exe 1 .\testcases\weekend.txt .\output\weekend.bmp
+# .\bin\FINAL.exe 1 .\testcases\weekend.txt .\output\weekend.bmp
 
 # bin/FINAL testcases/scene01_basic.txt output/scene01.bmp
 # bin/FINAL testcases/scene02_cube.txt output/scene02.bmp

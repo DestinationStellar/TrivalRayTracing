@@ -11,7 +11,7 @@ public:
 	Triangle() = delete;
 
     // a b c are three vertex positions of the triangle
-	Triangle( const Vector3f& a, const Vector3f& b, const Vector3f& c, Material* m) : Object3D(m) {
+	Triangle( const Vector3f& a, const Vector3f& b, const Vector3f& c, shared_ptr<Material> m) : Object3D(m) {
 		this->vertices[0]=a;
 		this->vertices[1]=b;
 		this->vertices[2]=c;
@@ -38,6 +38,18 @@ public:
 	}
 
 	bool bounding_box(double time0, double time1, AABB& output_box) const override {
+
+		Vector3f p_min = vertices[0];
+		Vector3f p_max = vertices[0];
+		for (int i=1; i<3; i++) {
+			for (int j=0; j<3; j++) {
+				p_min[j] = fmin(p_min[j], vertices[i][j]);
+				p_max[j] = fmax(p_max[j], vertices[i][j]);
+			}
+		}
+		p_min = p_min - Vector3f(0.001,0.001,0.001);
+		p_max = p_max + Vector3f(0.001,0.001,0.001);
+    	output_box = AABB (p_min, p_max);
 		return true;
 	}
 

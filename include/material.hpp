@@ -116,7 +116,7 @@ public:
         albedo = a;
         fuzz = f;
     }
-    Metal (const Vector3f &a, float f) : albedo(a), fuzz(f) {}
+    Metal (const Vector3f &a, float f=0.0) : albedo(a), fuzz(f) {}
     bool scatter(const Ray &r_in, const Hit &hit, ScatterRecord &srec) const override {
         Vector3f reflected = reflect(r_in.getDirection().normalized(), hit.getNormal());
         srec.specular_ray =

@@ -27,9 +27,9 @@ SceneParser::SceneParser(const char *filename) {
     group = nullptr;
     camera = nullptr;
     background_color = Vector3f(0.5, 0.5, 0.5);
-    num_lights = 0;
+    // num_lights = 0;
     lights = nullptr;
-    ambientLight = nullptr;
+    // ambientLight = nullptr;
     num_materials = 0;
     materials = nullptr;
     current_material = nullptr;
@@ -57,10 +57,6 @@ SceneParser::SceneParser(const char *filename) {
     parseFile();
     fclose(file);
     file = nullptr;
-
-    if (num_lights == 0) {
-        printf("WARNING:    No lights specified\n");
-    }
 }
 
 SceneParser::~SceneParser() {
@@ -95,8 +91,6 @@ void SceneParser::parseFile() {
             parsePerspectiveCamera();
         } else if (!strcmp(token, "Background")) {
             parseBackground();
-        } else if (!strcmp(token, "Lights")) {
-            parseLights();
         } else if (!strcmp(token, "Materials")) {
             parseMaterials();
         } else if (!strcmp(token, "Textures")) {
@@ -195,77 +189,77 @@ void SceneParser::parseBackground() {
 // ====================================================================
 // ====================================================================
 
-void SceneParser::parseLights() {
-    char token[MAX_PARSER_TOKEN_LENGTH];
-    getToken(token);
-    assert (!strcmp(token, "{"));
-    // read in the number of objects
-    getToken(token);
-    assert (!strcmp(token, "numLights"));
-    num_lights = readInt();
-    lights = new Light *[num_lights];
-    // read in the objects
-    int count = 0;
-    while (num_lights > count) {
-        getToken(token);
-        if (strcmp(token, "DirectionalLight") == 0) {
-            lights[count] = parseDirectionalLight();
-        } else if (strcmp(token, "PointLight") == 0) {
-            lights[count] = parsePointLight();
-        } else {
-            printf("Unknown token in parseLight: '%s'\n", token);
-            exit(0);
-        }
-        count++;
-    }
-    getToken(token);
-    assert (!strcmp(token, "AmbientLight"));
-    ambientLight = parseAmbientLight();
-    getToken(token);
-    assert (!strcmp(token, "}"));
-}
+// void SceneParser::parseLights() {
+//     char token[MAX_PARSER_TOKEN_LENGTH];
+//     getToken(token);
+//     assert (!strcmp(token, "{"));
+//     // read in the number of objects
+//     getToken(token);
+//     assert (!strcmp(token, "numLights"));
+//     num_lights = readInt();
+//     lights = new Light *[num_lights];
+//     // read in the objects
+//     int count = 0;
+//     while (num_lights > count) {
+//         getToken(token);
+//         if (strcmp(token, "DirectionalLight") == 0) {
+//             lights[count] = parseDirectionalLight();
+//         } else if (strcmp(token, "PointLight") == 0) {
+//             lights[count] = parsePointLight();
+//         } else {
+//             printf("Unknown token in parseLight: '%s'\n", token);
+//             exit(0);
+//         }
+//         count++;
+//     }
+//     getToken(token);
+//     assert (!strcmp(token, "AmbientLight"));
+//     ambientLight = parseAmbientLight();
+//     getToken(token);
+//     assert (!strcmp(token, "}"));
+// }
 
-Light *SceneParser::parseDirectionalLight() {
-    char token[MAX_PARSER_TOKEN_LENGTH];
-    getToken(token);
-    assert (!strcmp(token, "{"));
-    getToken(token);
-    assert (!strcmp(token, "direction"));
-    Vector3f direction = readVector3f();
-    getToken(token);
-    assert (!strcmp(token, "color"));
-    Vector3f color = readVector3f();
-    getToken(token);
-    assert (!strcmp(token, "}"));
-    return new DirectionalLight(direction, color);
-}
+// Light *SceneParser::parseDirectionalLight() {
+//     char token[MAX_PARSER_TOKEN_LENGTH];
+//     getToken(token);
+//     assert (!strcmp(token, "{"));
+//     getToken(token);
+//     assert (!strcmp(token, "direction"));
+//     Vector3f direction = readVector3f();
+//     getToken(token);
+//     assert (!strcmp(token, "color"));
+//     Vector3f color = readVector3f();
+//     getToken(token);
+//     assert (!strcmp(token, "}"));
+//     return new DirectionalLight(direction, color);
+// }
 
-Light *SceneParser::parsePointLight() {
-    char token[MAX_PARSER_TOKEN_LENGTH];
-    getToken(token);
-    assert (!strcmp(token, "{"));
-    getToken(token);
-    assert (!strcmp(token, "position"));
-    Vector3f position = readVector3f();
-    getToken(token);
-    assert (!strcmp(token, "color"));
-    Vector3f color = readVector3f();
-    getToken(token);
-    assert (!strcmp(token, "}"));
-    return new PointLight(position, color);
-}
+// Light *SceneParser::parsePointLight() {
+//     char token[MAX_PARSER_TOKEN_LENGTH];
+//     getToken(token);
+//     assert (!strcmp(token, "{"));
+//     getToken(token);
+//     assert (!strcmp(token, "position"));
+//     Vector3f position = readVector3f();
+//     getToken(token);
+//     assert (!strcmp(token, "color"));
+//     Vector3f color = readVector3f();
+//     getToken(token);
+//     assert (!strcmp(token, "}"));
+//     return new PointLight(position, color);
+// }
 
-Light *SceneParser::parseAmbientLight() {
-    char token[MAX_PARSER_TOKEN_LENGTH];
-    getToken(token);
-    assert (!strcmp(token, "{"));
-    getToken(token);
-    assert (!strcmp(token, "color"));
-    Vector3f color = readVector3f();
-    getToken(token);
-    assert (!strcmp(token, "}"));
-    return new AmbientLight(color);
-}
+// Light *SceneParser::parseAmbientLight() {
+//     char token[MAX_PARSER_TOKEN_LENGTH];
+//     getToken(token);
+//     assert (!strcmp(token, "{"));
+//     getToken(token);
+//     assert (!strcmp(token, "color"));
+//     Vector3f color = readVector3f();
+//     getToken(token);
+//     assert (!strcmp(token, "}"));
+//     return new AmbientLight(color);
+// }
 
 // ====================================================================
 // ====================================================================
@@ -483,12 +477,17 @@ Group *SceneParser::parseGroup() {
             int index = readInt();
             assert (index >= 0 && index <= getNumMaterials());
             current_material = getMaterial(index);
+            if (std::dynamic_pointer_cast<DiffuseLight>(current_material)) {
+                isLight = true;
+            } else {
+                isLight = false;
+            }
         } else {
             shared_ptr<Object3D>object = parseObject(token);
             assert (object != nullptr);
             answer->addObject(count, object);
-
             count++;
+            if (isLight) lights->addObject(object);
         }
     }
     getToken(token);

@@ -14,6 +14,7 @@ class Mesh : public Object3D {
 
 public:
     Mesh(const char *filename, shared_ptr<Material> m);
+    Mesh(const std::vector<shared_ptr<Object3D>> &tri, shared_ptr<Material> m);
 
     struct TriangleIndex {
         TriangleIndex() {

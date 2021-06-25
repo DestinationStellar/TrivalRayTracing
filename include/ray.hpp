@@ -37,8 +37,7 @@ public:
         return origin + direction * t;
     }
 
-private:
-
+public:
     Vector3f origin;
     Vector3f direction;
     float time;

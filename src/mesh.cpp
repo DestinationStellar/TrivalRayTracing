@@ -27,6 +27,11 @@ bool Mesh::bounding_box(double time0, double time1, AABB& output_box) const {
 	return true;
 }
 
+Mesh::Mesh(const std::vector<shared_ptr<Object3D>> &tri, shared_ptr<Material> m) : Object3D(material) {
+    triangle = tri;
+    triangle_bvh = make_shared<BVHnode>(triangle, 0, triangle.size(), 0, 0);
+}
+
 Mesh::Mesh(const char *filename, shared_ptr<Material> material) : Object3D(material) {
 
     // std::ifstream f;
@@ -84,6 +89,7 @@ Mesh::Mesh(const char *filename, shared_ptr<Material> material) : Object3D(mater
     //         ss >> texcoord[1];
     //     }
     // }
+    // f.close();
 
     triangle.reserve((size_t)5e5);
 
@@ -117,7 +123,7 @@ Mesh::Mesh(const char *filename, shared_ptr<Material> material) : Object3D(mater
         for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
             size_t fv = size_t(shapes[s].mesh.num_face_vertices[f]);
 
-            Vector3f tri_v[3];
+            Vector3f tri_v[3],tri_vn[3]; Vector2f tri_vt[3];
 
             // Loop over vertices in the face.
             for (size_t v = 0; v < fv; v++) {
@@ -126,12 +132,29 @@ Mesh::Mesh(const char *filename, shared_ptr<Material> material) : Object3D(mater
                 tinyobj::real_t vx = attrib.vertices[3*size_t(idx.vertex_index)+0];
                 tinyobj::real_t vy = attrib.vertices[3*size_t(idx.vertex_index)+1];
                 tinyobj::real_t vz = attrib.vertices[3*size_t(idx.vertex_index)+2];
-
                 tri_v[v] = Vector3f(float(vx), float(vy), float(vz));
 
-            }
+                // Check if `normal_index` is zero or positive. negative = no normal data
+                if (idx.normal_index >= 0) {
+                    tinyobj::real_t nx = attrib.normals[3*size_t(idx.normal_index)+0];
+                    tinyobj::real_t ny = attrib.normals[3*size_t(idx.normal_index)+1];
+                    tinyobj::real_t nz = attrib.normals[3*size_t(idx.normal_index)+2];
+                    tri_vn[v] = Vector3f(float(nx), float(ny), float(nz));
+                }
 
-            triangle.push_back(make_shared<Triangle>(tri_v[0], tri_v[1], tri_v[2], material));
+                // Check if `texcoord_index` is zero or positive. negative = no texcoord data
+                if (idx.texcoord_index >= 0) {
+                    tinyobj::real_t tx = attrib.texcoords[2*size_t(idx.texcoord_index)+0];
+                    tinyobj::real_t ty = attrib.texcoords[2*size_t(idx.texcoord_index)+1];
+                    tri_vt[v] = Vector2f(float(tx), float(ty));
+                } 
+
+            }
+            shared_ptr<Triangle> tri = make_shared<Triangle>(tri_v[0], tri_v[1], tri_v[2], material);
+            tri->setVT(tri_vt[0], tri_vt[1], tri_vt[2]);
+            tri->setVNorm(tri_vn[0],tri_vn[1],tri_vn[2]);
+            triangle.push_back(tri);
+            
 
             index_offset += fv;
 
@@ -140,22 +163,7 @@ Mesh::Mesh(const char *filename, shared_ptr<Material> material) : Object3D(mater
         }
     }
 
-    // computeNormal();
-
     triangle_bvh = make_shared<BVHnode>(triangle, 0, triangle.size(), 0, 0);
 
-    
-
-    // f.close();
 }
 
-void Mesh::computeNormal() {
-    n.resize(t.size());
-    for (int triId = 0; triId < (int) t.size(); ++triId) {
-        TriangleIndex& triIndex = t[triId];
-        Vector3f a = v[triIndex[1]] - v[triIndex[0]];
-        Vector3f b = v[triIndex[2]] - v[triIndex[0]];
-        b = Vector3f::cross(a, b);
-        n[triId] = b / b.length();
-    }
-}

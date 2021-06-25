@@ -50,6 +50,8 @@ SET(FINAL_INCLUDES
         include/constant_medium.hpp
         include/scene_generator.hpp
         include/onb.hpp
+        include/cylinder.hpp
+        include/hit_kdtree.hpp
         )
 
 SET(CMAKE_CXX_STANDARD 11)

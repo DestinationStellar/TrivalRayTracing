@@ -4,6 +4,9 @@
 #include "object3d.hpp"
 #include "curve.hpp"
 #include "utils.hpp"
+#include "cylinder.hpp"
+#include "bvh.hpp"
+#include "mesh.hpp"
 #include <tuple>
 #include <iostream>
 
@@ -11,7 +14,15 @@ const int NEWTON_STEPS = 100;
 const float NEWTON_EPS = 1e-4;
 
 class RevSurface : public Object3D {
-
+    // Definition for drawable surface.
+    typedef std::tuple<unsigned, unsigned, unsigned> Tup3u;
+    shared_ptr<Mesh> tri_mesh;
+    // Surface is just a struct that contains vertices, normals, and
+    // faces.  VV[i] is the position of vertex i, and VN[i] is the normal
+    // of vertex i.  A face is a triple i,j,k corresponding to a triangle
+    // with (vertex i, normal i), (vertex j, normal j), ...
+    // Currently this struct is computed every time when canvas refreshes.
+    // You can store this as member function to accelerate rendering.
 public:
     RevSurface(shared_ptr<Curve> pCurve, shared_ptr<Material> material) : pCurve(pCurve), Object3D(material) {
         // Check flat.
@@ -21,41 +32,76 @@ public:
                 exit(0);
             }
         }
-        controls_num = pCurve->getControlsSize();
+        resolution = 100; resolution_mesh = 30;
         miny = pCurve->y_min;
         maxy = pCurve->y_max;
         radius = pCurve->radius;
-        pCurve->discretize(30, curvePoints);
+        meshInit();
+        // pCurve->discretize(resolution, curvePoints);
+        // std::vector<shared_ptr<Object3D>> cylinders;
+        // cylinders.reserve(curvePoints.size()-1);
+        // for (int i=0; i<curvePoints.size()-1; i++) {
+        //     float r = fmax(fabs(curvePoints[i].V.x()), fabs(curvePoints[i+1].V.x()));
+        //     cylinders.push_back(make_shared<Cylinder>(Vector3f(0,0,0), r, fmin(curvePoints[i].V.y(), curvePoints[i+1].V.y()),
+        //                     fmax(curvePoints[i].V.y(), curvePoints[i+1].V.y()), material));
+        // }
+        // cylinder_bvh = make_shared<BVHnode>(cylinders, 0, cylinders.size(), 0, 0);
     }
 
     ~RevSurface() override {}
 
     bool intersect(const Ray &r, Hit &h, float tmin = 0.0, float tmax = infinity) const override {
 
-        
-        Vector3f ro = r.getOrigin();
-        Vector3f rd = r.getDirection();
-        double dt, dl, d0;
+        // Vector3f ro = r.getOrigin();
+        // Vector3f rd = r.getDirection();
+        // double dt, dl, d0;
 
-        // intersect with the cylinder
-        double l, a, b, c;
-        a = (rd.x() * rd.x() + rd.z() * rd.z());
-        b = (2 * rd.x() * ro.x() + 2 * rd.z() * ro.z());
-        c = ro.x() * ro.x() + ro.z() * ro.z() - radius * radius;
-        double det = b * b - 4 * a * c;
+        // // intersect with the cylinder
+        // double l, a, b, c;
+        // a = (rd.x() * rd.x() + rd.z() * rd.z());
+        // b = (2 * rd.x() * ro.x() + 2 * rd.z() * ro.z());
+        // c = ro.x() * ro.x() + ro.z() * ro.z() - radius * radius;
+        // double det = b * b - 4 * a * c;
 
-        if (det < 0) return false;
-        else det = std::sqrt(det);
-        if ((-b - det) / (2 * a) > tmin) l = (-b - det) / (2 * a);
-        else if ((-b + det) / (2 * a) > tmin) l = (-b + det) / (2 * a);
-        else return false;
-        Vector3f np = ro + l * rd;
+        // if (det < 0) return false;
+        // else det = std::sqrt(det);
+        // if ((-b - det) / (2 * a) > tmin) l = (-b - det) / (2 * a);
+        // else if ((-b + det) / (2 * a) > tmin) l = (-b + det) / (2 * a);
+        // else return false;
+        // if(l > tmax) return false;
+        // Vector3f np = ro + l * rd;
 
-        double t = (np.y() - miny) / (maxy - miny);
-        if (t < 0 || t > 1) return false;
-        double theta0 = std::acos(np.x() / radius);
+        // double t = (np.y() - miny) / (maxy - miny);
+        // if (t < 0 || t > 1) return false;
+        // double theta0 = std::acos(np.x() / radius);
 
-        if (Levenberg_Marquardt(r, h, tmin, tmax, l, t, theta0)) return true;
+        // Hit rec;
+        // std::vector<float> t_vec;
+        // if (cylinder_bvh->intersect(r, rec, tmin, tmax)) { 
+        //     l = rec.getT();
+        //     theta0 = rec.u * 2 * M_PI;
+        //     np = ro + l * rd;
+        //     t = (np.y() - miny) / (maxy - miny);
+        //     for (int i = 0; i < curvePoints.size()-1; i++) {
+        //         if (np.y() >= fmin(curvePoints[i].V.y(), curvePoints[i+1].V.y()) && np.y() < fmax(curvePoints[i].V.y(), curvePoints[i+1].V.y())) {
+        //             t_vec.push_back((i + (np.y() - curvePoints[i].V.y())/(curvePoints[i+1].V.y() - curvePoints[i].V.y()))/(float)resolution);
+        //         }
+        //     }
+
+        // }
+        // bool flag = false;float cloest_t = tmax;
+        // if (Levenberg_Marquardt(r, h, tmin, cloest_t, l, t, theta0)){
+        //     flag = true;
+        //     cloest_t = h.getT();
+        // }
+        // for (auto tt : t_vec) {
+        //     if (Levenberg_Marquardt(r, h, tmin, cloest_t, l, tt, theta0)) {
+        //         cloest_t = h.getT();
+        //         flag = true;
+        //     }
+        // }
+
+        // return flag;
 
         // float interval = 0.01;
         // for (int j = 0; j < 10; j ++){
@@ -68,28 +114,14 @@ public:
         //     interval *= 1.45;
         // }
         
-        float interval = 100;
-        for (int j = 0; j <= interval; j ++){
-            double s = pCurve->range[0] + (pCurve->range[1] - pCurve->range[0]) * (float)j/interval;
-            if (Levenberg_Marquardt(r, h, tmin, tmax, l, s, theta0)) return true;
+        // float interval = 100;
+        // for (int j = 0; j <= interval; j ++){
+        //     double s = pCurve->range[0] + (pCurve->range[1] - pCurve->range[0]) * (float)j/interval;
+        //     if (Levenberg_Marquardt(r, h, tmin, tmax, l, s, theta0)) return true;
 
-        }
-
-        // Vector3f normal, point;
-        // float tr = l, mu=t, theta = theta0;
-        // if (!newton(r, tr, theta, mu, normal, point)) {
-        //     // cout << "Not Intersect! t:" << t << " theta: " << theta / (2 *
-        //     // M_PI)
-        //     //      << " mu: " << mu << endl;
-        //     return false;
         // }
-        // if (!std::isnormal(mu) || !std::isnormal(theta) || !std::isnormal(t)) return false;
-        // if (t < 0 || mu < pCurve->range[0] || mu > pCurve->range[1] ||
-        //     t > h.getT())
-        //     return false;
-        // h.set(t, material, normal.normalized(), r);
 
-        return false;
+        return tri_mesh->intersect(r, h, tmin, tmax);
     }
 
     bool newton_iteration(const Ray &r, Hit &h, float tmin, float tmax, double tr, double s, double theta) const {
@@ -109,6 +141,8 @@ public:
                         Vector3f n(-fs.T.y() * cos(theta), fs.T.x(), -fs.T.y() * sin(theta));
                         n.normalize();
                         h.set(tr, material, n, r);
+                        h.u = theta/(2*M_PI);
+                        h.v = 1 - s;   
                         return true;
                     }
                     return false;
@@ -129,7 +163,7 @@ public:
     }
 
     bool Levenberg_Marquardt(const Ray &r, Hit &h, float tmin, float tmax, double tr, double s, double theta) const {
-        float epsilon1 = 1e-10, epsilon2 = 1e-10;
+        float epsilon1 = 1e-10, epsilon2 = 1e-10, epsilon = 0.01;
         int imax = 100; float nu=2.0;
         Vector3f X(tr, s, theta);
         CurvePoint fs = pCurve->caculate(s);
@@ -142,18 +176,20 @@ public:
                     p.z() - fs.V.x() * sin(theta));
         Matrix3f H = JF.transposed()*JF;
         Vector3f g = JF.transposed()*F;
-        bool found = g.length() <= epsilon1 || F.length() < 0.01;
+        bool found = g.length() <= epsilon1 || F.length() < epsilon;
         float mu = - infinity;
         for (int i = 0; i<3; i++) {
             mu = fmax(mu, H(i,i));
         }
-        mu *= 0.000001;
+        mu *= 0.001;
         for (int i = 0; i<=imax; i++) {
             if (found) {
-                if (X.x() >= tmin && X.x() < tmax && X.y() <= pCurve->range[1] && X.y() >= pCurve->range[0] && F.length() < 0.01) {
+                if (X.x() >= tmin && X.x() < tmax && X.y() <= pCurve->range[1] && X.y() >= pCurve->range[0] && F.length() < epsilon) {
                     Vector3f n(-fs.T.y() * cos(X.z()), fs.T.x(), -fs.T.y() * sin(X.z()));
                     n.normalize();
                     h.set(X.x(), material, n, r);
+                    h.u = X.z()/(2*M_PI);
+                    h.v = 1 - X.y();
                     return true;
                 } 
                 return false;
@@ -181,7 +217,7 @@ public:
                                 r.getDirection().z(), -sin(X.z()) * fs.T.x(), -cos(X.z()) * fs.V.x());
                     H = JF.transposed()*JF;
                     g = JF.transposed()*F;
-                    found = g.length() <= epsilon1 || F.length() < 0.01;
+                    found = g.length() <= epsilon1 || F.length() < epsilon;
                     mu = mu * fmax(1.0/3.0, 1-pow(2*rho-1, 3));
                     nu = 2.0;
                 } else {
@@ -199,56 +235,62 @@ public:
         return false;
     }
 
-    bool newton(const Ray &r, float &t, float &theta, float &mu,
-                Vector3f &normal, Vector3f &point) const {
-        Vector3f dmu, dtheta;
-        for (int i = 0; i < NEWTON_STEPS; ++i) {
-            if (theta < 0.0) theta += 2 * M_PI;
-            if (theta >= 2 * M_PI) theta = fmod(theta, 2 * M_PI);
-            if (mu >= 1) mu = 1.0 - FLT_EPSILON;
-            if (mu <= 0) mu = FLT_EPSILON;
-            point = getPoint(theta, mu, dtheta, dmu);
-            Vector3f f = r.getOrigin() + r.getDirection() * t - point;
-            float dist2 = f.squaredLength();
-            // cout << "Iter " << i + 1 << " t: " << t
-            //      << " theta: " << theta / (2 * M_PI) << " mu: " << mu
-            //      << " dist2: " << dist2 << endl;
-            normal = Vector3f::cross(dmu, dtheta);
-            if (dist2 < NEWTON_EPS) return true;
-            float D = Vector3f::dot(r.getDirection(), normal);
-            t -= Vector3f::dot(dmu, Vector3f::cross(dtheta, f)) / D;
-            mu -= Vector3f::dot(r.getDirection(), Vector3f::cross(dtheta, f)) / D;
-            theta += Vector3f::dot(r.getDirection(), Vector3f::cross(dmu, f)) / D;
-        }
-        return false;
-    }
-
-    Vector3f getPoint(const float &theta, const float &mu, Vector3f &dtheta,
-                      Vector3f &dmu) const {
-        Vector3f pt;
-        Quat4f rot;
-        rot.setAxisAngle(theta, Vector3f::UP);
-        Matrix3f rotMat = Matrix3f::rotation(rot);
-        CurvePoint cp = pCurve->caculate(mu);
-        pt = rotMat * cp.V;
-        dmu = rotMat * cp.T;
-        dtheta = Vector3f(-cp.V.x() * sin(theta), 0, -cp.V.x() * cos(theta));
-        return pt;
-    }
-
     bool bounding_box(double time0, double time1, AABB& output_box) const {
-        output_box = AABB(Vector3f(-pCurve->radius, pCurve->y_min - 3, -pCurve->radius),
-                 Vector3f(pCurve->radius, pCurve->y_max + 3, pCurve->radius));
+        output_box = AABB(Vector3f(-pCurve->radius, pCurve->y_min - 0.01, -pCurve->radius),
+                 Vector3f(pCurve->radius, pCurve->y_max + 0.01, pCurve->radius));
         return true;
+    }
+
+    void meshInit() {
+        std::vector<Vector3f> VV;
+        std::vector<Vector3f> VN;
+        std::vector<Tup3u> VF;
+        std::vector<CurvePoint> curve_points;
+        std::vector<shared_ptr<Object3D>> triangles;
+        pCurve->discretize_mesh(resolution_mesh, curve_points);
+        const int steps = 40;
+        for (unsigned int ci = 0; ci < curve_points.size(); ++ci) {
+            const CurvePoint &cp = curve_points[ci];
+            for (unsigned int i = 0; i < steps; ++i) {
+                float t = (float)i / steps;
+                Quat4f rot;
+                // 生成参数曲面
+                rot.setAxisAngle(t * 2 * 3.14159, Vector3f::UP);
+                Vector3f pnew = Matrix3f::rotation(rot) * cp.V;
+                Vector3f pNormal = Vector3f::cross(cp.T, -Vector3f::FORWARD);
+                Vector3f nnew = Matrix3f::rotation(rot) * pNormal;
+                VV.push_back(pnew);
+                VN.push_back(nnew);
+                int i1 = (i + 1 == steps) ? 0 : i + 1;
+                if (ci != curve_points.size() - 1) {
+                    // 把四边形剖分成两个三角形
+                    VF.emplace_back((ci + 1) * steps + i, ci * steps + i1,
+                                    ci * steps + i);
+                    VF.emplace_back((ci + 1) * steps + i, (ci + 1) * steps +
+                    i1,
+                                    ci * steps + i1);
+                }
+            }
+        }
+        for (int i = 0; i < VF.size(); ++i) {
+            shared_ptr<Triangle> t = make_shared<Triangle>(VV[std::get<0>(VF[i])], VV[std::get<1>(VF[i])],
+                       VV[std::get<2>(VF[i])], material);
+            t->setVNorm(VN[std::get<0>(VF[i])], VN[std::get<1>(VF[i])],
+                       VN[std::get<2>(VF[i])]);
+            
+            triangles.push_back(t);
+        }
+        tri_mesh = make_shared<Mesh>(triangles, material);
+
     }
 
 protected:
     std::vector<CurvePoint> curvePoints;
+    shared_ptr<BVHnode> cylinder_bvh;
     shared_ptr<Curve> pCurve;
     double radius;
     double maxy, miny;
-    int controls_num;
-
+    int resolution, resolution_mesh;
 };
 
 #endif //REVSURFACE_HPP

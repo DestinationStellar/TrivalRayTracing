@@ -53,18 +53,18 @@ public:
         return background_color;
     }
 
-    int getNumLights() const {
-        return num_lights;
-    }
+    // int getNumLights() const {
+    //     return num_lights;
+    // }
 
-    Light *getLight(int i) const {
-        assert(i >= 0 && i < num_lights);
-        return lights[i];
-    }
+    // Light *getLight(int i) const {
+    //     assert(i >= 0 && i < num_lights);
+    //     return lights[i];
+    // }
 
-    Light *getAmbientLight() const {
-        return ambientLight;
-    }
+    // Light *getAmbientLight() const {
+    //     return ambientLight;
+    // }
 
     int getNumMaterials() const {
         return num_materials;
@@ -88,16 +88,20 @@ public:
         return group;
     }
 
+    Group *getLights() const {
+        return lights;
+    }
+
 private:
 
     void parseFile();
     void parseGlobal();
     void parsePerspectiveCamera();
     void parseBackground();
-    void parseLights();
-    Light *parsePointLight();
-    Light *parseDirectionalLight();
-    Light *parseAmbientLight();
+    // void parseLights();
+    // Light *parsePointLight();
+    // Light *parseDirectionalLight();
+    // Light *parseAmbientLight();
     void parseMaterials();
     shared_ptr<Material> parseMaterial(char token[MAX_PARSER_TOKEN_LENGTH]);
     void parseTextures();
@@ -129,9 +133,9 @@ private:
     float init_weight;
     Camera *camera;
     Vector3f background_color;
-    int num_lights;
-    Light **lights;
-    Light *ambientLight;
+    // int num_lights;
+    // Light **lights;
+    // Light *ambientLight;
     int num_materials;
     shared_ptr<Material>* materials;
     shared_ptr<Material> current_material;
@@ -139,6 +143,8 @@ private:
     shared_ptr<Texture> *textures;
     shared_ptr<Texture> current_texture;
     Group *group;
+    Group *lights;
+    bool isLight;
 };
 
 #endif // SCENE_PARSER_H

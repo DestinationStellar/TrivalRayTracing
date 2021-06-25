@@ -26,9 +26,9 @@ if (!$OUTPUT_EXISTS){
     mkdir -Force output
 }
 
-.\bin\FINAL.exe 0 5 .\output\bezier.bmp
+.\bin\FINAL.exe 0 4 .\output\bezier.bmp
 
-# .\bin\FINAL.exe 0 1 .\output\cornell_box_ball.bmp
+# .\bin\FINAL.exe 0 1 .\output\cornell_box_debug.bmp
 
 # .\bin\FINAL.exe 1 .\testcases\simpleLight.txt .\output\simpleLight.bmp
 

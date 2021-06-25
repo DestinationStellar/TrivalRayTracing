@@ -24,22 +24,22 @@
 class SceneGenerator {
 public:
     SceneGenerator() {}
-    SceneGenerator(int index, int &imgW, int &imgH, int &samp, int &dep, float &weigh) {
+    SceneGenerator(int index) {
         switch(index) {
             case 1:
-                cornell_box(imgW, imgH, samp, dep, weigh);
+                cornell_box();
                 break;
             case 2:
-                cornell_smoke(imgW, imgH, samp, dep, weigh);
+                cornell_smoke();
                 break;
             case 3:
-                next_week(imgW, imgH, samp, dep, weigh);
+                bunny();
                 break;
             case 4:
-                bunny(imgW, imgH, samp, dep, weigh);
+                bezier();
                 break;
             case 5:
-                bezier(imgW, imgH, samp, dep, weigh);
+                final_scene1();
                 break;
             default:
                 std::cout<<"matched no scene!"<<std::endl;
@@ -57,21 +57,61 @@ public:
         return group;
     }
 
-    RayTracer* getRayTracer() {
-        return rayTracer;
+    Group* getLight() {
+        return lights;
+    }
+
+    int getImageWidth() {
+        return imgW;
+    }
+
+    int getImageHeight() {
+        return imgH;
+    }
+
+    int getSample() {
+        return sample_per_pixel;
+    }
+
+    float getMaxDepth() {
+        return max_depth;
+    }
+
+    float getInitWeight() {
+        return init_weight;
+    }
+
+    Vector3f getBackGround() {
+        return background;
+    }
+
+    int getNumPhotons() {
+        return numPhotons;
+    }
+
+    int getNumRounds() {
+        return numRounds;
+    }
+
+    int getCKPT() {
+        return ckpt;
     }
 
 protected:
     Camera *camera;
     Group *group;
     Group *lights;
-    RayTracer *rayTracer;
+    int imgW, imgH, sample_per_pixel;
+    float max_depth, init_weight;
+    Vector3f background;
 
-    void cornell_box(int &imgW, int &imgH, int &samp, int &dep, float &weigh) {
+    int numPhotons, numRounds, ckpt;
+
+    void cornell_box() {
         std::cout<<"scene: cornell box"<<std::endl;
         imgW = 600;
         imgH = 600;
-        samp = 200;
+        sample_per_pixel = 200;
         Vector3f lookfrom(278, 278, -800);
         Vector3f lookat(278, 278, 0);
         Vector3f vup(0,1,0);
@@ -79,10 +119,10 @@ protected:
         float aperture = 0.0;
         float focus_dis = 10.0;
 
-        dep = 50;
-        weigh = 5;
+        max_depth = 50;
+        init_weight = 5;
 
-        Vector3f background(0,0,0);
+        background = Vector3f(0,0,0);
 
         group = new Group(7);
         lights = new Group(1);
@@ -91,7 +131,7 @@ protected:
         shared_ptr<Material> white = make_shared<Lambertian>(Vector3f(.73, .73, .73));
         shared_ptr<Material> green = make_shared<Lambertian>(Vector3f(.12, .45, .15));
         shared_ptr<Material> light = make_shared<DiffuseLight>(Vector3f(1, 1, 1), 7);
-        shared_ptr<Material> wall = make_shared<Lambertian>(make_shared<ImageTexture>("resource/bricks.jpg"));
+        shared_ptr<Material> wall = make_shared<Lambertian>(make_shared<ImageTexture>("resource/earthmap.jpg"));
         shared_ptr<Material> dielectric = make_shared<Dielectric>(1.5);
 
         shared_ptr<Object3D> r1 = make_shared<Rectangle>(Vector3f(555,278,278), Vector3f(0,0,1), Vector3f(0,-1,0), 555, 555, green);
@@ -128,14 +168,13 @@ protected:
 
         camera = new PerspectiveCamera(lookfrom, lookat, vup, imgW, imgH,
                 DegreesToRadians(angle), aperture, focus_dis);
-        rayTracer = new RayTracer(group, lights, background, dep);
     }
 
-    void cornell_smoke(int &imgW, int &imgH, int &samp, int &dep, float &weigh) {
+    void cornell_smoke() {
         std::cout<<"scene: cornell smoke"<<std::endl;
         imgW = 600;
         imgH = 600;
-        samp = 200;
+        sample_per_pixel = 200;
         Vector3f lookfrom(278, 278, -800);
         Vector3f lookat(278, 278, 0);
         Vector3f vup(0,1,0);
@@ -143,10 +182,10 @@ protected:
         float aperture = 0.0;
         float focus_dis = 10.0;
 
-        dep = 50;
-        weigh = 5;
+        max_depth = 50;
+        init_weight = 5;
 
-        Vector3f background(0,0,0);
+        background = Vector3f(0,0,0);
 
         group = new Group(6);
         lights = new Group(1);
@@ -184,14 +223,158 @@ protected:
 
         camera = new PerspectiveCamera(lookfrom, lookat, vup, imgW, imgH,
                 DegreesToRadians(angle), aperture, focus_dis);
-        rayTracer = new RayTracer(group, lights, background, dep);
     }
 
-    void next_week(int &imgW, int &imgH, int &samp, int &dep, float &weigh) {
-        std::cout<<"scene: nextWeek"<<std::endl;
+    void bunny() {
+        std::cout<<"scene: bunny"<<std::endl;
+        imgW = 600;
+        imgH = 600;
+        sample_per_pixel = 200;
+        Vector3f lookfrom(278, 278, -800);
+        Vector3f lookat(278, 278, 0);
+        Vector3f vup(0,1,0);
+        float angle = 40.0;
+        float aperture = 0.0;
+        float focus_dis = 10.0;
+
+        max_depth = 50;
+        init_weight = 5;
+
+        background = Vector3f(0,0,0);
+
+        group = new Group(7);
+        lights = new Group(1);
+
+        shared_ptr<Material> red = make_shared<Lambertian>(Vector3f(.65, .05, .05));
+        shared_ptr<Material> white = make_shared<Lambertian>(Vector3f(.73, .73, .73));
+        shared_ptr<Material> green = make_shared<Lambertian>(Vector3f(.12, .45, .15));
+        shared_ptr<Material> light = make_shared<DiffuseLight>(Vector3f(1, 1, 1), 7);
+
+        shared_ptr<Object3D> r1 = make_shared<Rectangle>(Vector3f(555,278,278), Vector3f(0,0,1), Vector3f(0,-1,0), 555, 555, green);
+        shared_ptr<Object3D> r2 = make_shared<Rectangle>(Vector3f(0,278,278), Vector3f(0,0,1), Vector3f(0,-1,0), 555, 555, red);
+        shared_ptr<Object3D> l = make_shared<Rectangle>(Vector3f(278,554,278), Vector3f(-1,0,0), Vector3f(0,0,-1), 230, 205, light);
+        shared_ptr<Object3D> r3 = make_shared<Rectangle>(Vector3f(278, 0, 278), Vector3f(-1,0,0),Vector3f(0,0,1), 555, 555, white);
+        shared_ptr<Object3D> r4 = make_shared<Rectangle>(Vector3f(278, 555, 278), Vector3f(-1,0,0),Vector3f(0,0,-1), 555, 555, white);
+        shared_ptr<Object3D> r5 = make_shared<Rectangle>(Vector3f(278, 278, 555), Vector3f(-1,0,0),Vector3f(0,1,0), 555, 555, white);
+
+        Group boxes;
+
+        shared_ptr<Object3D> bunny = make_shared<Mesh>("mesh/bunny.fine.obj", make_shared<Lambertian>(Vector3f(0.79, 0.66, 0.44)));
+        bunny = make_shared<Transform>(bunny, Vector3f(1000, 1000, 1000), Vector3f(278, 100, 278), 0, 180, 0);
+        
+        group->addObject(r1);
+        group->addObject(r2);
+        group->addObject(l);
+        group->addObject(r3);
+        group->addObject(r4);
+        group->addObject(r5);
+
+        group->addObject(bunny);
+
+        lights->addObject(l);
+
+        camera = new PerspectiveCamera(lookfrom, lookat, vup, imgW, imgH,
+                DegreesToRadians(angle), aperture, focus_dis);
+    }
+
+    void bezier() {
+        std::cout<<"scene: bezier"<<std::endl;
+        imgW = 400;
+        imgH = 400;
+        sample_per_pixel = 100;
+        Vector3f lookfrom(278, 278, -800);
+        Vector3f lookat(278, 278, 0);
+        Vector3f vup(0,1,0);
+        float angle = 30.0;
+        float aperture = 0.0;
+        float focus_dis = 10.0;
+
+        max_depth = 50;
+        init_weight = 5;
+
+        background = Vector3f(0,0,0);
+
+        group = new Group(7);
+        lights = new Group(1);
+
+        shared_ptr<Material> red = make_shared<Lambertian>(Vector3f(.65, .05, .05));
+        shared_ptr<Material> white = make_shared<Lambertian>(Vector3f(.73, .73, .73));
+        shared_ptr<Material> green = make_shared<Lambertian>(Vector3f(.12, .45, .15));
+        shared_ptr<Material> light = make_shared<DiffuseLight>(Vector3f(1, 1, 1), 7);
+
+        shared_ptr<Object3D> r1 = make_shared<Rectangle>(Vector3f(555,278,278), Vector3f(0,0,1), Vector3f(0,-1,0), 555, 555, green);
+        shared_ptr<Object3D> r2 = make_shared<Rectangle>(Vector3f(0,278,278), Vector3f(0,0,1), Vector3f(0,-1,0), 555, 555, red);
+        shared_ptr<Object3D> l = make_shared<Rectangle>(Vector3f(278,554,278), Vector3f(-1,0,0), Vector3f(0,0,-1), 230, 205, light);
+        shared_ptr<Object3D> r3 = make_shared<Rectangle>(Vector3f(278, 0, 278), Vector3f(-1,0,0),Vector3f(0,0,1), 555, 555, white);
+        shared_ptr<Object3D> r4 = make_shared<Rectangle>(Vector3f(278, 555, 278), Vector3f(-1,0,0),Vector3f(0,0,-1), 555, 555, white);
+        shared_ptr<Object3D> r5 = make_shared<Rectangle>(Vector3f(278, 278, 555), Vector3f(-1,0,0),Vector3f(0,1,0), 555, 555, white);
+
+        std::vector<Vector3f> points;
+        points.reserve(26);
+        
+        points.push_back(Vector3f( 0.000000, -0.459543, 0.0 ));
+        points.push_back(Vector3f( 0.000000, -0.459544, 0.0 ));
+        points.push_back(Vector3f( 0.000000, -0.459545, 0.0 ));
+        points.push_back(Vector3f( -0.351882, -0.426747, 0.0 ));
+        points.push_back(Vector3f( -0.848656, -0.278898, 0.0 ));
+        points.push_back(Vector3f( -1.112097, 0.084005, 0.0 ));
+        points.push_back(Vector3f( -1.164785, 1.105511, 0.0 ));
+        points.push_back(Vector3f( -0.991667, 2.328629, 0.0 ));
+        points.push_back(Vector3f( -1.029301, 2.503360, 0.0 ));
+        points.push_back(Vector3f( -1.088800, 2.345600, 0.0 ));
+        points.push_back(Vector3f( -1.278000, 1.162800, 0.0 ));
+        points.push_back(Vector3f( -1.214800, 0.055200, 0.0 ));
+        points.push_back(Vector3f( -0.915600, -0.381200, 0.0 ));
+        points.push_back(Vector3f( -0.380400, -0.622000, 0.0 ));
+        points.push_back(Vector3f( -0.144000, -0.968400, 0.0 ));
+        points.push_back(Vector3f( -0.096800, -1.480000, 0.0 ));
+        points.push_back(Vector3f( -0.128400, -2.112400, 0.0 ));
+        points.push_back(Vector3f( -0.317200, -2.202800, 0.0 ));
+        points.push_back(Vector3f( -0.994400, -2.262800, 0.0 ));
+        points.push_back(Vector3f( -1.214800, -2.323200, 0.0 ));
+        points.push_back(Vector3f( -1.199200, -2.398400, 0.0 ));
+        points.push_back(Vector3f( -1.057600, -2.458800, 0.0 ));
+        points.push_back(Vector3f( -0.711200, -2.458800, 0.0 ));
+        points.push_back(Vector3f(  0.000000, -2.458800, 0.0 ));
+        points.push_back(Vector3f(  0.000000, -2.458801, 0.0 ));
+        points.push_back(Vector3f( 0.000000, -2.458802, 0.0 ));
+
+        // points.push_back(Vector3f( -2, 2, 0 ));
+        // points.push_back(Vector3f( -4, 0, 0 ));
+        // points.push_back(Vector3f( 0, 0, 0 ));
+        // points.push_back(Vector3f( -2, -2, 0 ));
+        shared_ptr<Curve> curve = make_shared<BsplineCurve>(points);
+        shared_ptr<Object3D> vase;
+
+        // shared_ptr<Material> vase_img = make_shared<Lambertian>(make_shared<ImageTexture>("resource/vase.png"));
+        // vase = make_shared<RevSurface>(curve, vase_img);
+        // vase = make_shared<Transform>(vase, Vector3f(30, 30, 30), Vector3f(278, 278, 278), 0, 0, 0);
+        // group->addObject(vase);
+
+        vase = make_shared<RevSurface>(curve, make_shared<Metal>(Vector3f(0.8,0.8,0.9)));
+        vase = make_shared<Transform>(vase, Vector3f(30, 30, 30), Vector3f(278, 278, 278), 0, 0, 0);
+        group->addObject(vase);
+        // vase = make_shared<ConstantMedium>(vase, 0.2, Vector3f(0.2, 0.4, 0.9));
+        // group->addObject(vase);
+
+        group->addObject(r1);
+        group->addObject(r2);
+        group->addObject(l);
+        group->addObject(r3);
+        group->addObject(r4);
+        group->addObject(r5);
+
+        lights->addObject(l);
+
+        camera = new PerspectiveCamera(lookfrom, lookat, vup, imgW, imgH,
+                DegreesToRadians(angle), aperture, focus_dis);
+    }
+
+    void final_scene1() {
+        std::cout<<"scene: final scene 1"<<std::endl;
         imgW = 800;
         imgH = 800;
-        samp = 1000;
+        sample_per_pixel = 1000;
         Vector3f lookfrom(478, 278, -600);
         Vector3f lookat(278, 278, 0);
         Vector3f vup(0, 1, 0);
@@ -199,10 +382,10 @@ protected:
         float aperture = 0.0;
         float focus_dis = (lookat-lookfrom).length();
 
-        dep = 50;
-        weigh = 5;
+        max_depth = 50;
+        init_weight = 5;
 
-        Vector3f background(0,0,0);
+        background = Vector3f(0,0,0);
 
         group = new Group(11);
         lights = new Group(2);
@@ -254,8 +437,7 @@ protected:
         boundary = make_shared<ConstantMedium>(boundary, 0.0001, Vector3f(1, 1, 1));
         group->addObject(boundary); // 8
 
-        char file_path[] = "resource/sunmap.jpg";
-        shared_ptr<Texture> etext = make_shared<ImageTexture>(file_path);
+        shared_ptr<Texture> etext = make_shared<ImageTexture>("resource/sunmap.jpg");
         shared_ptr<Material> emat = make_shared<DiffuseLight>(etext, 5);
         shared_ptr<Object3D> esphere = make_shared<Sphere>(Vector3f(400,200,400), 100, emat);
         group->addObject(esphere); // 9
@@ -279,147 +461,6 @@ protected:
         
         camera = new PerspectiveCamera(lookfrom, lookat, vup, imgW, imgH,
                 DegreesToRadians(angle), aperture, focus_dis, 0.0, 1.0);
-        rayTracer = new RayTracer(group, lights, background, dep);
-    }
-
-    void bunny(int &imgW, int &imgH, int &samp, int &dep, float &weigh) {
-        std::cout<<"scene: bunny"<<std::endl;
-        imgW = 600;
-        imgH = 600;
-        samp = 200;
-        Vector3f lookfrom(278, 278, -800);
-        Vector3f lookat(278, 278, 0);
-        Vector3f vup(0,1,0);
-        float angle = 40.0;
-        float aperture = 0.0;
-        float focus_dis = 10.0;
-
-        dep = 50;
-        weigh = 5;
-
-        Vector3f background(0,0,0);
-
-        group = new Group(7);
-        lights = new Group(1);
-
-        shared_ptr<Material> red = make_shared<Lambertian>(Vector3f(.65, .05, .05));
-        shared_ptr<Material> white = make_shared<Lambertian>(Vector3f(.73, .73, .73));
-        shared_ptr<Material> green = make_shared<Lambertian>(Vector3f(.12, .45, .15));
-        shared_ptr<Material> light = make_shared<DiffuseLight>(Vector3f(1, 1, 1), 7);
-
-        shared_ptr<Object3D> r1 = make_shared<Rectangle>(Vector3f(555,278,278), Vector3f(0,0,1), Vector3f(0,-1,0), 555, 555, green);
-        shared_ptr<Object3D> r2 = make_shared<Rectangle>(Vector3f(0,278,278), Vector3f(0,0,1), Vector3f(0,-1,0), 555, 555, red);
-        shared_ptr<Object3D> l = make_shared<Rectangle>(Vector3f(278,554,278), Vector3f(-1,0,0), Vector3f(0,0,-1), 230, 205, light);
-        shared_ptr<Object3D> r3 = make_shared<Rectangle>(Vector3f(278, 0, 278), Vector3f(-1,0,0),Vector3f(0,0,1), 555, 555, white);
-        shared_ptr<Object3D> r4 = make_shared<Rectangle>(Vector3f(278, 555, 278), Vector3f(-1,0,0),Vector3f(0,0,-1), 555, 555, white);
-        shared_ptr<Object3D> r5 = make_shared<Rectangle>(Vector3f(278, 278, 555), Vector3f(-1,0,0),Vector3f(0,1,0), 555, 555, white);
-
-        Group boxes;
-
-        shared_ptr<Object3D> bunny = make_shared<Mesh>("mesh/bunny.fine.obj", make_shared<Lambertian>(Vector3f(0.79, 0.66, 0.44)));
-        bunny = make_shared<Transform>(bunny, Vector3f(1000, 1000, 1000), Vector3f(278, 100, 278), 0, 180, 0);
-        
-        group->addObject(r1);
-        group->addObject(r2);
-        group->addObject(l);
-        group->addObject(r3);
-        group->addObject(r4);
-        group->addObject(r5);
-
-        group->addObject(bunny);
-
-        lights->addObject(l);
-
-        camera = new PerspectiveCamera(lookfrom, lookat, vup, imgW, imgH,
-                DegreesToRadians(angle), aperture, focus_dis);
-        rayTracer = new RayTracer(group, lights, background, dep);
-    }
-
-    void bezier(int &imgW, int &imgH, int &samp, int &dep, float &weigh) {
-        std::cout<<"scene: bezier"<<std::endl;
-        imgW = 400;
-        imgH = 400;
-        samp = 100;
-        Vector3f lookfrom(278, 278, -800);
-        Vector3f lookat(278, 278, 0);
-        Vector3f vup(0,1,0);
-        float angle = 30.0;
-        float aperture = 0.0;
-        float focus_dis = 10.0;
-
-        dep = 50;
-        weigh = 5;
-
-        Vector3f background(0,0,0);
-
-        group = new Group(7);
-        lights = new Group(1);
-
-        shared_ptr<Material> red = make_shared<Lambertian>(Vector3f(.65, .05, .05));
-        shared_ptr<Material> white = make_shared<Lambertian>(Vector3f(.73, .73, .73));
-        shared_ptr<Material> green = make_shared<Lambertian>(Vector3f(.12, .45, .15));
-        shared_ptr<Material> light = make_shared<DiffuseLight>(Vector3f(1, 1, 1), 7);
-
-        shared_ptr<Object3D> r1 = make_shared<Rectangle>(Vector3f(555,278,278), Vector3f(0,0,1), Vector3f(0,-1,0), 555, 555, green);
-        shared_ptr<Object3D> r2 = make_shared<Rectangle>(Vector3f(0,278,278), Vector3f(0,0,1), Vector3f(0,-1,0), 555, 555, red);
-        shared_ptr<Object3D> l = make_shared<Rectangle>(Vector3f(278,554,278), Vector3f(-1,0,0), Vector3f(0,0,-1), 230, 205, light);
-        shared_ptr<Object3D> r3 = make_shared<Rectangle>(Vector3f(278, 0, 278), Vector3f(-1,0,0),Vector3f(0,0,1), 555, 555, white);
-        shared_ptr<Object3D> r4 = make_shared<Rectangle>(Vector3f(278, 555, 278), Vector3f(-1,0,0),Vector3f(0,0,-1), 555, 555, white);
-        shared_ptr<Object3D> r5 = make_shared<Rectangle>(Vector3f(278, 278, 555), Vector3f(-1,0,0),Vector3f(0,1,0), 555, 555, white);
-
-        std::vector<Vector3f> points;
-        // points.reserve(26);
-        
-        // points.push_back(Vector3f( 0.000000, -0.459543, 0.0 ));
-        // points.push_back(Vector3f( 0.000000, -0.459544, 0.0 ));
-        // points.push_back(Vector3f( 0.000000, -0.459545, 0.0 ));
-        // points.push_back(Vector3f( -0.351882, -0.426747, 0.0 ));
-        // points.push_back(Vector3f( -0.848656, -0.278898, 0.0 ));
-        // points.push_back(Vector3f( -1.112097, 0.084005, 0.0 ));
-        // points.push_back(Vector3f( -1.164785, 1.105511, 0.0 ));
-        // points.push_back(Vector3f( -0.991667, 2.328629, 0.0 ));
-        // points.push_back(Vector3f( -1.029301, 2.503360, 0.0 ));
-        // points.push_back(Vector3f( -1.088800, 2.345600, 0.0 ));
-        // points.push_back(Vector3f( -1.278000, 1.162800, 0.0 ));
-        // points.push_back(Vector3f( -1.214800, 0.055200, 0.0 ));
-        // points.push_back(Vector3f( -0.915600, -0.381200, 0.0 ));
-        // points.push_back(Vector3f( -0.380400, -0.622000, 0.0 ));
-        // points.push_back(Vector3f( -0.144000, -0.968400, 0.0 ));
-        // points.push_back(Vector3f( -0.096800, -1.480000, 0.0 ));
-        // points.push_back(Vector3f( -0.128400, -2.112400, 0.0 ));
-        // points.push_back(Vector3f( -0.317200, -2.202800, 0.0 ));
-        // points.push_back(Vector3f( -0.994400, -2.262800, 0.0 ));
-        // points.push_back(Vector3f( -1.214800, -2.323200, 0.0 ));
-        // points.push_back(Vector3f( -1.199200, -2.398400, 0.0 ));
-        // points.push_back(Vector3f( -1.057600, -2.458800, 0.0 ));
-        // points.push_back(Vector3f( -0.711200, -2.458800, 0.0 ));
-        // points.push_back(Vector3f(  0.000000, -2.458800, 0.0 ));
-        // points.push_back(Vector3f(  0.000000, -2.458801, 0.0 ));
-        // points.push_back(Vector3f( 0.000000, -2.458802, 0.0 ));
-
-        points.push_back(Vector3f( -2, 2, 0 ));
-        points.push_back(Vector3f( -4, 0, 0 ));
-        points.push_back(Vector3f( 0, 0, 0 ));
-        points.push_back(Vector3f( -2, -2, 0 ));
-
-                    
-        shared_ptr<Curve> curve = make_shared<BezierCurve>(points);
-        shared_ptr<Object3D> wineglass = make_shared<RevSurface>(curve, make_shared<Lambertian>(Vector3f(0.2, 0.3, 0.8)));
-        wineglass = make_shared<Transform>(wineglass, Vector3f(30, 30, 30), Vector3f(278, 278, 278), 0, 0, 0);
-        
-        group->addObject(wineglass);
-        group->addObject(r1);
-        group->addObject(r2);
-        group->addObject(l);
-        group->addObject(r3);
-        group->addObject(r4);
-        group->addObject(r5);
-
-        lights->addObject(l);
-
-        camera = new PerspectiveCamera(lookfrom, lookat, vup, imgW, imgH,
-                DegreesToRadians(angle), aperture, focus_dis);
-        rayTracer = new RayTracer(group, lights, background, dep);
     }
 
 };

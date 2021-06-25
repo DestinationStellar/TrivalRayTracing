@@ -1,234 +1,165 @@
 #ifndef CURVE_HPP
 #define CURVE_HPP
 
-#include "object3d.hpp"
 #include <vecmath.h>
-#include <vector>
+
 #include <algorithm>
+#include <vector>
+#include "object3d.hpp"
+#include "utils.hpp"
 
-
-// The CurvePoint object stores information about a point on a curve
-// after it has been tesselated: the vertex (V) and the tangent (T)
-// It is the responsiblility of functions that create these objects to fill in all the data.
 struct CurvePoint {
-    Vector3f V; // Vertex
-    Vector3f T; // Tangent  (unit)
-    CurvePoint(Vector3f Vertex, Vector3f Tangent):V(Vertex),T(Tangent){}
+    Vector3f V;  // Vertex
+    Vector3f T;  // Tangent  (unit)
 };
 
-class Curve : public Object3D {
-protected:
+class Curve {
+   protected:
     std::vector<Vector3f> controls;
-public:
+
+   public:
     explicit Curve(std::vector<Vector3f> points) : controls(std::move(points)) {
-        radius = fabs(controls[0][0]);
-        y_min = controls[0][1];
-        y_max = controls[0][1];
-        for (int i=1; i<controls.size(); i++) {
-            radius = fmax(radius, fabs(controls[i][0]));
-            y_min = fmin(y_min, controls[i][1]);
-            y_max = fmax(y_max, controls[i][1]);
-		}
+        y_min = infinity;
+        y_max = -infinity;
+        radius = 0;
+        for (auto pt : controls) {
+            y_min = fmin(pt.y(), y_min);
+            y_max = fmax(pt.y(), y_max);
+            radius = fmax(radius, fabs(pt.x()));
+            radius = fmax(radius, fabs(pt.z()));
+        }
     }
 
-    bool intersect(const Ray &r, Hit &h, float tmin, float tmax) const override {
-        return false;
+    std::vector<Vector3f> &getControls() { return controls; }
+
+    CurvePoint caculate(float mu) {
+        CurvePoint pt;
+        int bpos;
+        if (mu == t[0]){
+            bpos = upper_bound(t.begin(), t.end(), mu) - t.begin() - 1;
+        } else {
+            bpos = std::max((long long)0, lower_bound(t.begin(), t.end(), mu) - t.begin() - 1);
+        }
+        
+        std::vector<float> s(k + 2, 0), ds(k + 1, 1);
+        s[k] = 1;
+        for (int p = 1; p <= k; ++p) {
+            for (int ii = k - p; ii < k + 1; ++ii) {
+                int i = ii + bpos - k;
+                float w1, dw1, w2, dw2;
+                if (tpad[i + p] == tpad[i]) {
+                    w1 = mu;
+                    dw1 = 1;
+                } else {
+                    w1 = (mu - tpad[i]) / (tpad[i + p] - tpad[i]);
+                    dw1 = 1.0 / (tpad[i + p] - tpad[i]);
+                }
+                if (tpad[i + p + 1] == tpad[i + 1]) {
+                    w2 = 1 - mu;
+                    dw2 = -1;
+                } else {
+                    w2 = (tpad[i + p + 1] - mu) /
+                         (tpad[i + p + 1] - tpad[i + 1]);
+                    dw2 = -1 / (tpad[i + p + 1] - tpad[i + 1]);
+                }
+                if (p == k) ds[ii] = (dw1 * s[ii] + dw2 * s[ii + 1]) * p;
+                s[ii] = w1 * s[ii] + w2 * s[ii + 1];
+            }
+        }
+        s.pop_back();
+        int lsk = k - bpos, rsk = bpos + 1 - n;
+        if (lsk > 0) {
+            for (int i = lsk; i < s.size(); ++i) {
+                s[i - lsk] = s[i];
+                ds[i - lsk] = ds[i];
+            }
+            s.resize(s.size() - lsk);
+            ds.resize(ds.size() - lsk);
+            lsk = 0;
+        }
+        if (rsk > 0) {
+            if (rsk < s.size()) {
+                s.resize(s.size() - rsk);
+                ds.resize(ds.size() - rsk);
+            }
+        }
+        for (int j = 0; j < s.size(); ++j) {
+            pt.V += controls[-lsk + j] * s[j];
+            pt.T += controls[-lsk + j] * ds[j];
+        }
+        return pt;
     }
 
-    bool bounding_box(double time0, double time1, AABB& output_box) const {
-        Vector3f p_min = controls[0];
-		Vector3f p_max = controls[0];
-		for (int i=1; i<controls.size(); i++) {
-			for (int j=0; j<3; j++) {
-				p_min[j] = fmin(p_min[j], controls[i][j]);
-				p_max[j] = fmax(p_max[j], controls[i][j]);
-			}
-		}
-		p_min = p_min - Vector3f(0.001,0.001,0.001);
-		p_max = p_max + Vector3f(0.001,0.001,0.001);
-    	output_box = AABB (p_min, p_max);
-		return true;
+    void discretize(int resolution, std::vector<CurvePoint> &data) { // 此处定义与原PA3不同 resolution 为总采样次数
+        data.resize(resolution + 1);
+        for (int i = 0; i <= resolution; ++i) {
+            float mu =
+                ((float)i / resolution) * (range[1] - range[0]) + range[0];
+            data[i] = caculate(mu);
+        }
     }
 
-    std::vector<Vector3f> &getControls() {
-        return controls;
+    void discretize_mesh(int resolution, std::vector<CurvePoint> &data) {
+        resolution *= n / k;
+        data.resize(resolution);
+        for (int i = 0; i < resolution; ++i) {
+            float mu =
+                ((float)i / resolution) * (range[1] - range[0]) + range[0];
+            data[i] = caculate(mu);
+        }
     }
 
-    int getControlsSize() {
-        return controls.size();
+    void pad() {
+        int tSize = t.size();
+        tpad.resize(tSize + k);
+        for (int i = 0; i < tSize; ++i) tpad[i] = t[i];
+        for (int i = 0; i < k; ++i) tpad[i + tSize] = t.back();
     }
- 
-    virtual void discretize(int resolution, std::vector<CurvePoint>& data) = 0;
 
-    virtual CurvePoint caculate(double mu) = 0;
-
-    float radius, y_min, y_max;
+    int n, k;
+    std::vector<float> t;
+    std::vector<float> tpad;
+    float y_min, y_max, radius;
     float range[2];
-protected:
-    int n;
-    int k;
-    std::vector<double> knot;
-    double **baseFunction;
-
 };
 
 class BezierCurve : public Curve {
-public:
+   public:
     explicit BezierCurve(const std::vector<Vector3f> &points) : Curve(points) {
         if (points.size() < 4 || points.size() % 3 != 1) {
             printf("Number of control points of BezierCurve must be 3n+1!\n");
             exit(0);
         }
-        n=controls.size()-1;
-        k=n;
-        knot.reserve(n+k+2);
-        for(int i=0;i<n+1;i++){
-            knot.push_back(0.0);
-        }
-        for(int i=n+1;i<n+k+2;i++){
-            knot.push_back(1.0);
-        }
-        baseFunction=new double* [n+k+1];
-        for(int i=0;i<n+k+1;i++){
-            baseFunction[i]=new double[k+1];// 后续可考虑滚动数组优化
-            for(int j=0;j<=k;j++){
-                baseFunction[i][j]=0.0;
-            }
-        }
+        n = controls.size();
+        k = n - 1;
         range[0] = 0;
         range[1] = 1;
+        t.resize(2 * n);
+        for (int i = 0; i < n; ++i) {
+            t[i] = 0;
+            t[i + n] = 1;
+        }
+        pad();
     }
-
-    void discretize(int resolution, std::vector<CurvePoint>& data) override {
-        data.clear();
-        // fill in data vector
-        for(int i=k;i<n+1;i++){// valid range
-            if(knot[i]==knot[i+1])continue;//重复节点不必重复采样
-            for(int j=0;j<resolution;j++){// sampling
-                double mu=knot[i]+j*(knot[i+1]-knot[i])/double(resolution);
-                data.push_back(caculate(mu));
-            }
-        }
-    }
-
-    CurvePoint caculate(double mu) override {
-        Vector3f vertex=Vector3f::ZERO;
-        Vector3f tangent=Vector3f::ZERO;
-        for(int i=0;i<n+k+1;i++){
-            if(mu>=knot[i]&&mu<knot[i+1]){
-                baseFunction[i][0]=1.0;
-            }
-            else baseFunction[i][0]=0.0;
-        }
-        for(int j=1;j<=k;j++){
-            for(int i=0;i<n+(k-j)+1;i++){
-                double tmp1=0;
-                if(knot[i+j]!=knot[i]){
-                    tmp1=(mu-knot[i])/(knot[i+j]-knot[i]);
-                }
-                double tmp2=0;
-                if(knot[i+j+1]-knot[i+1]){
-                    tmp2=(knot[i+j+1]-mu)/(knot[i+j+1]-knot[i+1]);
-                }
-                baseFunction[i][j]=tmp1*baseFunction[i][j-1]+tmp2*baseFunction[i+1][j-1];
-            }
-        }
-        vertex=Vector3f::ZERO;
-        for(int i=0;i<=n;i++){
-            vertex+=baseFunction[i][k]*controls[i];
-        }
-        tangent=Vector3f::ZERO;
-        for(int i=0;i<=n;i++){
-            double tmp1=0;
-            if(knot[i+k]!=knot[i]){
-                tmp1=baseFunction[i][k-1]/(knot[i+k]-knot[i]);
-            }
-            double tmp2=0;
-            if(knot[i+k+1]!=knot[i+1]){
-                tmp2=baseFunction[i+1][k-1]/(knot[i+k+1]-knot[i+1]);
-            }
-            tangent+=k*(tmp1-tmp2)*controls[i];
-        }
-        return CurvePoint(vertex, tangent);
-    }  
 };
 
 class BsplineCurve : public Curve {
-public:
+   public:
     BsplineCurve(const std::vector<Vector3f> &points) : Curve(points) {
         if (points.size() < 4) {
-            printf("Number of control points of BspineCurve must be more than 4!\n");
+            printf(
+                "Number of control points of BspineCurve must be more than "
+                "4!\n");
             exit(0);
         }
-        n=controls.size()-1;
-        k=3;
-        knot.reserve(n+k+2);
-        for(int i=0;i<n+k+2;i++){
-            knot.push_back(double(i)/double(n+k+1));
-        }
-        baseFunction=new double* [n+k+1];
-        for(int i=0;i<n+k+1;i++){
-            baseFunction[i]=new double[k+1];// 后续可考虑滚动数组优化
-            for(int j=0;j<=k;j++){
-                baseFunction[i][j]=0.0;
-            }
-        }
-        range[0] = knot[k];
-        range[1] = knot[n+1];
-    }
-
-    void discretize(int resolution, std::vector<CurvePoint>& data) override {
-        data.clear();
-        // fill in data vector
-        for(int i=k;i<n+1;i++){// valid range
-            if(knot[i]==knot[i+1])continue;//重复节点不必重复采样
-            for(int j=0;j<resolution;j++){// sampling
-                double mu=knot[i]+j*(knot[i+1]-knot[i])/double(resolution);
-                data.push_back(caculate(mu));
-            }
-        }
-    }
-
-    CurvePoint caculate(double mu) override {
-        Vector3f vertex=Vector3f::ZERO;
-        Vector3f tangent=Vector3f::ZERO;
-        for(int i=0;i<n+k+1;i++){
-            if(mu>=knot[i]&&mu<knot[i+1]){
-                baseFunction[i][0]=1.0;
-            }
-            else baseFunction[i][0]=0.0;
-        }
-        for(int j=1;j<=k;j++){
-            for(int i=0;i<n+(k-j)+1;i++){
-                double tmp1=0;
-                if(knot[i+j]!=knot[i]){
-                    tmp1=(mu-knot[i])/(knot[i+j]-knot[i]);
-                }
-                double tmp2=0;
-                if(knot[i+j+1]-knot[i+1]){
-                    tmp2=(knot[i+j+1]-mu)/(knot[i+j+1]-knot[i+1]);
-                }
-                baseFunction[i][j]=tmp1*baseFunction[i][j-1]+tmp2*baseFunction[i+1][j-1];
-            }
-        }
-        vertex=Vector3f::ZERO;
-        for(int i=0;i<=n;i++){
-            vertex+=baseFunction[i][k]*controls[i];
-        }
-        tangent=Vector3f::ZERO;
-        for(int i=0;i<=n;i++){
-            double tmp1=0;
-            if(knot[i+k]!=knot[i]){
-                tmp1=baseFunction[i][k-1]/(knot[i+k]-knot[i]);
-            }
-            double tmp2=0;
-            if(knot[i+k+1]!=knot[i+1]){
-                tmp2=baseFunction[i+1][k-1]/(knot[i+k+1]-knot[i+1]);
-            }
-            tangent+=k*(tmp1-tmp2)*controls[i];
-        }
-        return CurvePoint(vertex, tangent);
+        n = controls.size();
+        k = 3;
+        t.resize(n + k + 1);
+        for (int i = 0; i < n + k + 1; ++i) t[i] = (float)i / (n + k);
+        pad();
+        range[0] = t[k];
+        range[1] = t[n];
     }
 };
 
-#endif // CURVE_HPP
+#endif  // CURVE_HPP

@@ -6,7 +6,6 @@
 
 #include "utils.hpp"
 #include "camera.hpp"
-#include "ray_tracer.hpp"
 #include "group.hpp"
 #include "sphere.hpp"
 #include "moving_sphere.hpp"
@@ -85,18 +84,6 @@ public:
         return background;
     }
 
-    int getNumPhotons() {
-        return numPhotons;
-    }
-
-    int getNumRounds() {
-        return numRounds;
-    }
-
-    int getCKPT() {
-        return ckpt;
-    }
-
 protected:
     Camera *camera;
     Group *group;
@@ -105,7 +92,6 @@ protected:
     float max_depth, init_weight;
     Vector3f background;
 
-    int numPhotons, numRounds, ckpt;
 
     void cornell_box() {
         std::cout<<"scene: cornell box"<<std::endl;

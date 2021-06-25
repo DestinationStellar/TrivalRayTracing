@@ -33,12 +33,13 @@ SET(FINAL_INCLUDES
         include/ray.hpp
         include/pdf.hpp
         include/scene_parser.hpp
+        include/scene_generator.hpp
         include/sphere.hpp
         include/transform.hpp
         include/triangle.hpp
         include/curve.hpp
         include/revsurface.hpp
-        include/ray_tracer.hpp
+        include/render.hpp
         include/utils.hpp
         include/moving_sphere.hpp
         include/aabb.hpp
@@ -48,10 +49,8 @@ SET(FINAL_INCLUDES
         include/rectangle.hpp
         include/box.hpp
         include/constant_medium.hpp
-        include/scene_generator.hpp
         include/onb.hpp
         include/cylinder.hpp
-        include/hit_kdtree.hpp
         )
 
 SET(CMAKE_CXX_STANDARD 11)

@@ -10,7 +10,7 @@
 
 #include "scene_parser.hpp"
 #include "scene_generator.hpp"
-#include "ray_tracer.hpp"
+#include "render.hpp"
 
 
 #include <omp.h>

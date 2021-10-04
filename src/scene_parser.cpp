@@ -334,7 +334,8 @@ shared_ptr<Material> SceneParser::parseMaterial(char type[MAX_PARSER_TOKEN_LENGT
         if (!m_texture) m_texture = make_shared<SolidColor>(Vector3f::ZERO);
         answer = make_shared<Lambertian>(ambientColor, diffuseColor, specularColor, shininess, m_texture);
     } else if (!strcmp(type, "Metal")){
-        answer = make_shared<Metal>(ambientColor, diffuseColor, specularColor, shininess, albedo, fuzz);
+        if (!m_texture) m_texture = make_shared<SolidColor>(Vector3f::ZERO);
+        answer = make_shared<Lambertian>(ambientColor, diffuseColor, specularColor, shininess, m_texture);
     } else if (!strcmp(type, "Dielectric")){
         answer = make_shared<Dielectric>(ambientColor, diffuseColor, specularColor, shininess, ir);
     } else if (!strcmp(type, "Light")){
@@ -467,6 +468,7 @@ Group *SceneParser::parseGroup() {
     int num_objects = readInt();
 
     auto *answer = new Group(num_objects);
+    lights = new Group(num_objects);
 
     // read in the objects
     int count = 0;

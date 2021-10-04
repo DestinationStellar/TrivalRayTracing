@@ -27,7 +27,7 @@ bool Mesh::bounding_box(double time0, double time1, AABB& output_box) const {
 	return true;
 }
 
-Mesh::Mesh(const std::vector<shared_ptr<Object3D>> &tri, shared_ptr<Material> m) : Object3D(material) {
+Mesh::Mesh(const std::vector<shared_ptr<Object3D>> &tri, shared_ptr<Material> m) : Object3D(m) {
     triangle = tri;
     triangle_bvh = make_shared<BVHnode>(triangle, 0, triangle.size(), 0, 0);
 }
@@ -91,8 +91,6 @@ Mesh::Mesh(const char *filename, shared_ptr<Material> material) : Object3D(mater
     // }
     // f.close();
 
-    triangle.reserve((size_t)5e5);
-
     std::string inputfile = filename;
     tinyobj::ObjReaderConfig reader_config;
     reader_config.mtl_search_path = ""; // Path to material files
@@ -114,8 +112,9 @@ Mesh::Mesh(const char *filename, shared_ptr<Material> material) : Object3D(mater
     auto& shapes = reader.GetShapes();
     auto& materials = reader.GetMaterials();
 
-    std::cout<< "obj loaded!" << std::endl;
+    std::cout<< "obj readed!" << std::endl;
 
+    triangle.reserve(shapes[0].mesh.num_face_vertices.size());
     // Loop over shapes
     for (size_t s = 0; s < shapes.size(); s++) {
         // Loop over faces(polygon)
@@ -150,20 +149,21 @@ Mesh::Mesh(const char *filename, shared_ptr<Material> material) : Object3D(mater
                 } 
 
             }
-            shared_ptr<Triangle> tri = make_shared<Triangle>(tri_v[0], tri_v[1], tri_v[2], material);
-            tri->setVT(tri_vt[0], tri_vt[1], tri_vt[2]);
-            tri->setVNorm(tri_vn[0],tri_vn[1],tri_vn[2]);
-            triangle.push_back(tri);
-            
+            shared_ptr<Triangle> t = make_shared<Triangle>(tri_v[0], tri_v[1], tri_v[2], material);
+            // t->setVT(tri_vt[0], tri_vt[1], tri_vt[2]);
+            // t->setVNorm(tri_vn[0],tri_vn[1],tri_vn[2]);
+            shared_ptr<Object3D> tri = t;
+            triangle.push_back(tri);    
 
             index_offset += fv;
-
             // per-face material
             shapes[s].mesh.material_ids[f];
         }
     }
+    std::cout<< "obj loaded!" << std::endl;
 
     triangle_bvh = make_shared<BVHnode>(triangle, 0, triangle.size(), 0, 0);
+    std::cout<< "bvh builded!" << std::endl;
 
 }
 

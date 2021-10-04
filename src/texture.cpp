@@ -43,5 +43,5 @@ Vector3f ImageTexture::value(double u, double v, const Vector3f& p) const {
     const auto color_scale = 1.0 / 255.0;
     auto pixel = data + j*bytes_per_scanline + i*bytes_per_pixel;
 
-    return Vector3f(color_scale*pixel[0], color_scale*pixel[1], color_scale*pixel[2]);
+    return Vector3f(pow(color_scale*pixel[0],2), pow(color_scale*pixel[1],2), pow(color_scale*pixel[2],2));
 }

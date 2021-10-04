@@ -20,9 +20,6 @@ public:
     virtual bool intersect(
         const Ray& r, Hit& rec, float t_min = 0.0, float t_max = infinity
     ) const override {
-        // Print occasional samples when debugging. To enable, set enableDebug true.
-        const bool enableDebug = false;
-        const bool debugging = enableDebug && random_double() < 0.00001;
 
         Hit rec1, rec2;
 
@@ -31,8 +28,6 @@ public:
 
         if (!boundary->intersect(r, rec2, rec1.getT()+0.0001, infinity))
             return false;
-
-        if (debugging) std::cerr << "\nt_min=" << rec1.getT() << ", t_max=" << rec2.t << '\n';
 
         if (rec1.getT() < t_min) rec1.t = t_min;
         if (rec2.getT() > t_max) rec2.t = t_max;
@@ -52,12 +47,6 @@ public:
 
         rec.t = rec1.t + hit_distance / ray_length;
         rec.intersectP = r.pointAtParameter(rec.t);
-
-        if (debugging) {
-            std::cerr << "hit_distance = " <<  hit_distance << '\n'
-                    << "rec.t = " <<  rec.t << '\n'
-                    << "rec.p = " <<  rec.getIntersectP() << '\n';
-        }
 
         rec.normal = Vector3f(1,0,0);  // arbitrary
         rec.frontFace = true;     // also arbitrary

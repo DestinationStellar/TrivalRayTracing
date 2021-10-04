@@ -111,23 +111,24 @@ class Metal : public Material {
 public:
     Metal(
         const Vector3f &a_color, const Vector3f &d_color, const Vector3f &s_color , float s = 0,
-        const Vector3f &a = Vector3f::ZERO, float f = 0 
+        shared_ptr<Texture> a = nullptr, float f = 0 
     ): Material(a_color,d_color,s_color,s){
         albedo = a;
         fuzz = f;
     }
-    Metal (const Vector3f &a, float f=0.0) : albedo(a), fuzz(f) {}
+    Metal (shared_ptr<Texture> a, float f=0.0) : albedo(a), fuzz(f) {}
+    Metal (const Vector3f &c, float f=0.0) : albedo(make_shared<SolidColor>(c)), fuzz(f) {}
     bool scatter(const Ray &r_in, const Hit &hit, ScatterRecord &srec) const override {
         Vector3f reflected = reflect(r_in.getDirection().normalized(), hit.getNormal());
         srec.specular_ray =
             Ray(hit.getIntersectP(), reflected + fuzz*random_in_unit_sphere(), r_in.getTime());
-        srec.attenuation = albedo;
+        srec.attenuation = albedo->value(hit.u, hit.v, hit.getIntersectP());
         srec.is_specular = true;
         srec.pdf_ptr = nullptr;
         return true;
     }
 protected:
-    Vector3f albedo;
+    shared_ptr<Texture> albedo;
     float fuzz;
 };
 

@@ -26,18 +26,11 @@ if (!$OUTPUT_EXISTS){
     mkdir -Force output
 }
 
-.\bin\FINAL.exe 0 4 .\output\bezier.bmp
+# .\bin\FINAL.exe 0 5 .\output\final_scene1.bmp
+# .\bin\FINAL.exe 0 6 .\output\final_scene2.bmp
+# .\bin\FINAL.exe 0 7 .\output\final_scene3.bmp
 
-# .\bin\FINAL.exe 0 1 .\output\cornell_box_debug.bmp
+# .\bin\FINAL.exe 0 1 .\output\cornell_box_depth.bmp
 
-# .\bin\FINAL.exe 1 .\testcases\simpleLight.txt .\output\simpleLight.bmp
-
+.\bin\FINAL.exe 1 .\testcases\simpleLight.txt .\output\simpleLight.bmp
 # .\bin\FINAL.exe 1 .\testcases\weekend.txt .\output\weekend.bmp
-
-# bin/FINAL testcases/scene01_basic.txt output/scene01.bmp
-# bin/FINAL testcases/scene02_cube.txt output/scene02.bmp
-# bin/FINAL testcases/scene03_sphere.txt output/scene03.bmp
-# bin/FINAL testcases/scene04_axes.txt output/scene04.bmp
-# bin/FINAL testcases/scene05_bunny_200.txt output/scene05.bmp
-# bin/FINAL testcases/scene06_bunny_1k.txt output/scene06.bmp
-# bin/FINAL testcases/scene07_shine.txt output/scene07.bmp

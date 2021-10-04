@@ -26,6 +26,8 @@ public:
         image_width = camera->getWidth();
         backgroundColor = parser.getBackgroundColor();
         max_depth = parser.getMaxDepth();
+        init_weight = parser.getInitWeight();
+        sample_per_pixel = parser.getSamplePerPixel();
         renderedImg = new Image(image_width,image_height);
     }
     RayTracer(SceneGenerator& generator, char* out) : outputfile(out) {
@@ -37,6 +39,7 @@ public:
         image_width = generator.getImageWidth();
         max_depth = generator.getMaxDepth();
         init_weight = generator.getInitWeight();
+        sample_per_pixel = generator.getSample();
         renderedImg = new Image(image_width,image_height);
     }
     ~RayTracer()=default;
@@ -44,7 +47,7 @@ public:
     void render() {
         for (int x = 0; x < image_width; ++x) {
             printf("\rrendering image pass %.3lf%%", x*100.f/image_width);
-            #pragma omp parallel for schedule(dynamic, 60), num_threads(12)
+            #pragma omp parallel for schedule(dynamic, 10), num_threads(8)
             for (int y = 0; y < image_height; ++y) {
                 Vector3f finalColor = Vector3f::ZERO;
                 float actual_samples = sample_per_pixel; 

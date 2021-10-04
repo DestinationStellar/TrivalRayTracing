@@ -1,0 +1,11 @@
+.vscode/
+
+bin/
+build/
+
+output/
+mesh/
+testcases/
+resource/
+
+deps/
